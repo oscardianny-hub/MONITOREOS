@@ -267,6 +267,7 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
     <div class="row">
       <button id="copyTxt">Copiar resultado</button>
       <button id="copyTsv">Copiar tabla para Excel</button>
+      <button id="addCarga">Agregar a la carga del Excel</button>
       <span class="msg" id="copyMsg" aria-live="polite"></span>
     </div>
     <textarea id="copyFallback" hidden readonly rows="6"></textarea>
@@ -284,6 +285,21 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
       <span data-l="Básico">Básico 210–239 · retroalimentación</span>
       <span data-l="En alerta">En alerta 240–275 · compromisos</span>
       <span data-l="Óptimo">Óptimo 276–300 · sin compromisos</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-c">
+    <h2 id="t-c">Carga de la muestra al Excel</h2>
+    <p class="lede" style="font-size:14px">Cada interacción que agregues se guarda aquí (en este navegador). Al terminar la muestra, descarga un Excel con una hoja por asesor, canal y gestión, ya en las celdas de la hoja ASESOR de «Estructura_Monitoreo_Comercial_CUSI.xlsx» (hasta 6 conversaciones por hoja).</p>
+    <div class="muestra">
+      <label for="cId">Fecha / ID de la interacción<input type="text" id="cId" placeholder="Ej.: 2026-10-14 · caso 5821"></label>
+      <label for="cMes">Mes del monitoreo<select id="cMes"><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select></label>
+    </div>
+    <div id="cargaList" class="lists"></div>
+    <div class="row">
+      <button class="primary" id="dlCarga">Descargar Excel de carga</button>
+      <button id="clearCarga">Vaciar la carga</button>
+      <span class="msg" id="cargaMsg" aria-live="polite">Aún no hay interacciones en la carga.</span>
     </div>
   </section>
 
@@ -773,5 +789,106 @@ $("copyPrompt").addEventListener("click",async()=>{const chat=$("chat").value.tr
 $("loadAnswer").addEventListener("click",()=>{const raw=$("answer").value;const a=raw.indexOf("{"),b=raw.lastIndexOf("}");
   try{if(a<0||b<a)throw 0;apply(JSON.parse(raw.slice(a,b+1)));}catch(e){setStatus("No pude leer la respuesta. Copia la respuesta completa de Claude, desde la primera { hasta la última }.","err");}});
 getSample();
+
+/* ---------- Carga de la muestra al Excel ---------- */
+const COLS=["I","L","O","R","U","X"];
+const XL={SI:"SI",Si:"SI",No:"NO",NA:"N/A"};
+let carga=[];
+try{carga=JSON.parse(localStorage.getItem("com-carga")||"[]");if(!Array.isArray(carga))carga=[];}catch(e){carga=[];}
+function saveCarga(){try{localStorage.setItem("com-carga",JSON.stringify(carga));}catch(e){}}
+function cargaGroups(){
+  const g=new Map();
+  carga.forEach(x=>{const k=[x.asesor,x.canal,x.gi].join("|");if(!g.has(k))g.set(k,[]);g.get(k).push(x);});
+  return [...g.values()];
+}
+function renderCarga(){
+  const box=$("cargaList");box.textContent="";
+  const groups=cargaGroups();
+  groups.forEach(items=>{
+    const d=document.createElement("div");
+    const f=items[0];
+    d.textContent=`${f.asesor} · ${CANALES[f.canal].nombre} · ${GEST[f.gi]}: ${items.length} interacci${items.length===1?"ón":"ones"}${items.length>6?" (se reparte en "+Math.ceil(items.length/6)+" hojas)":""}`;
+    box.append(d);
+  });
+  $("cargaMsg").textContent=carga.length?`${carga.length} interacci${carga.length===1?"ón":"ones"} en la carga, de ${groups.length} hoja${groups.length===1?"":"s"} de asesor.`:"Aún no hay interacciones en la carga.";
+}
+function addCarga(){
+  const m=$("cargaMsg"),asesor=$("asesorN").value.trim();
+  if(!asesor){m.textContent="Escribe el nombre del asesor arriba.";return;}
+  if(!state.some(s=>s.cal)){m.textContent="Primero califica una interacción.";return;}
+  const r=compute();
+  if(C.some((c,i)=>state[i].cal===""||state[i].cal==="NE")||r.revisar.length){m.textContent="Quedan criterios sin calificar o en revisión del analista: complétalos antes de agregar.";return;}
+  const cal={};C.forEach((c,i)=>{cal[c.code]=XL[state[i].cal]||"";});
+  carga.push({asesor,canal,gi,id:$("cId").value.trim(),cal});saveCarga();renderCarga();
+  m.textContent="Agregada. "+$("cargaMsg").textContent;
+}
+/* xlsx mínimo, sin librerías */
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=crcT[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zipStore(files){
+  const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  const u16=n=>[n&255,(n>>8)&255],u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];
+  files.forEach(([name,txt])=>{
+    const nm=enc.encode(name),data=enc.encode(txt),crc=crc32(data);
+    const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nm.length),0,0]);
+    parts.push(lh,nm,data);
+    cen.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nm.length),0,0,0,0,0,0,0,0,0,0,0,0,...u32(off)]),nm);
+    off+=lh.length+nm.length+data.length;
+  });
+  const cl=cen.reduce((a,x)=>a+x.length,0);
+  const end=new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cl),...u32(off),0,0]);
+  return new Blob([...parts,...cen,end],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function sheetXml(cells){
+  const byRow={};cells.forEach(([ref,v])=>{const r=+ref.match(/\d+/)[0];(byRow[r]=byRow[r]||[]).push([ref,v]);});
+  const colN=ref=>ref.match(/[A-Z]+/)[0].split("").reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0);
+  const rows=Object.keys(byRow).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r}">`+byRow[r].sort((a,b)=>colN(a[0])-colN(b[0])).map(([ref,v])=>`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`).join("")+"</row>").join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="22" customWidth="1"/><col min="9" max="24" width="14" customWidth="1"/></cols><sheetData>${rows}</sheetData></worksheet>`;
+}
+function buildXlsx(){
+  const mes=$("cMes").value,sheets=[],used=new Set();
+  const inst=[["A1","Carga de la muestra · Calificador Comercial "+VERSION],
+   ["A3","Cómo pasarla al Excel «Estructura_Monitoreo_Comercial_CUSI.xlsx»"],
+   ["A4","1. En esta hoja del asesor, copia el rango I10:X69."],
+   ["A5","2. En la hoja ASESOR que quieras llenar, selecciona la celda I10 y usa Pegado especial > Omitir blancos (así no borras las fórmulas)."],
+   ["A6","3. Escribe en esa hoja el asesor, canal, gestión y mes (celdas B3 a B6): están en cada hoja de esta carga."],
+   ["A7","4. Las filas son los 56 criterios en el orden de la hoja ASESOR (filas 14 a 69). Las celdas vacías son criterios que no aplican a ese canal o gestión."]];
+  sheets.push(["Instrucciones",inst]);
+  cargaGroups().forEach(items=>{
+    const f=items[0];
+    for(let p=0;p<items.length;p+=6){
+      const chunk=items.slice(p,p+6);
+      let nm=(f.asesor+" "+CANALES[f.canal].nombre.slice(0,3)+" "+GEST[f.gi].slice(0,3)+(p?" "+(p/6+1):"")).replace(/[\\\/\?\*\[\]:]/g," ").slice(0,31),k=2;
+      while(used.has(nm.toLowerCase()))nm=nm.slice(0,28)+" "+k++;
+      used.add(nm.toLowerCase());
+      const cells=[["A3","Asesor"],["B3",f.asesor],["A4","Canal"],["B4",CANALES[f.canal].nombre],["A5","Gestión"],["B5",GEST[f.gi]],["A6","Mes"],["B6",mes],["A13","Código"]];
+      chunk.forEach((x,j)=>{cells.push([COLS[j]+"9","Conversación "+(j+1)]);if(x.id)cells.push([COLS[j]+"10",x.id]);cells.push([COLS[j]+"13","Resultado"]);
+        CRIT.forEach((c,i)=>{const v=x.cal[c.code];if(v)cells.push([COLS[j]+(14+i),v]);});});
+      CRIT.forEach((c,i)=>cells.push(["A"+(14+i),c.code]));
+      sheets.push([nm,cells]);
+    }
+  });
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${esc(s[0])}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`;
+  const wrel=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}</Relationships>`;
+  return zipStore([["[Content_Types].xml",ct],["_rels/.rels",rels],["xl/workbook.xml",wb],["xl/_rels/workbook.xml.rels",wrel],...sheets.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`,sheetXml(s[1])])]);
+}
+async function dlCarga(){
+  const m=$("cargaMsg");
+  if(!carga.length){m.textContent="Agrega primero al menos una interacción calificada.";return;}
+  const blob=buildXlsx(),name="Carga_Muestra_Comercial_"+$("cMes").value+".xlsx";
+  try{const d=await window.claude?.use?.("downloads");
+    if(d){await d.save({filename:name,data:blob});m.textContent="Excel de carga listo: "+name;return;}}
+  catch(e){if(e&&e.code==="declined"){m.textContent="Descarga cancelada.";return;}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();m.textContent="Excel de carga listo: "+name;
+}
+$("addCarga").addEventListener("click",addCarga);
+$("dlCarga").addEventListener("click",dlCarga);
+$("clearCarga").addEventListener("click",()=>{const b=$("clearCarga");if(!carga.length)return;
+  if(b.dataset.ask!=="1"){b.dataset.ask="1";b.textContent="Confirmar: vaciar todo";setTimeout(()=>{b.dataset.ask="";b.textContent="Vaciar la carga";},4000);return;}
+  b.dataset.ask="";b.textContent="Vaciar la carga";carga=[];saveCarga();renderCarga();});
+renderCarga();
 
 </script>
