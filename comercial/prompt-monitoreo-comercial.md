@@ -49,6 +49,26 @@ Es el flujo que sigue el asesor en WhatsApp. Sirve como contexto para calificar;
 16. El asesor cierra la conversación.
 17 a 22. Seguimiento mensual, monitoreo aleatorio y retroalimentación sobre la AS-026; plan de acción si hay falencias; monitoreo en tiempo real del canal y ajuste de horarios o funciones del equipo (Asesor y Analista comercial).
 
+## Estructura de las notas de HubSpot (P4-1 a P4-5)
+Todas las notas y actividades registradas deben seguir esta estructura, o una muy parecida con los mismos campos. Se compara con el registro de HubSpot que aporte el analista; sin registro, P4 queda "No evaluable".
+```
+Nota · [tipo de actividad] — [fecha] · [hora]
+Semáforo: 🟢 / 🟡 / 🔴
+Motivo: [para qué se contactó]
+Gestión: [qué se explicó o hizo]
+Resultado: [qué respondió el asociado o solicitante]
+Pendiente: [qué falta] · resp. [quién]
+Compromiso asociado: [qué hará y fecha/hora límite]
+Compromiso asesor: [qué hará el asesor]
+Próxima acción: [actividad y fecha/hora]
+Etapa: [se mantiene / avanza / se cierra] ; [motivo]
+```
+- **P4-1**: Sí si cada contacto está registrado como actividad del tipo correcto, con fecha y hora reales y la cabecera de la nota.
+- **P4-3**: Sí si las notas traen Motivo, Gestión, Resultado, Pendiente (con responsable), Compromisos, Próxima acción y Etapa; No si faltan campos clave.
+
+## Regla de WA-3 (WhatsApp)
+WA-3 (contacto creado y asociado al CRM) se identifica en la conversación: si en el guion de despedida el asesor usa el nombre del asociado, el contacto quedó asociado a la conversación (Sí). Sin nombre o con saludo genérico: No. Si la conversación no llegó a la despedida: No evaluable.
+
 ## Pasos
 1. Identifica canal, tipo de gestión (Comercial, Cobranza - consulta o Cobranza - campaña) y asesor. Si algo no es claro, pregunta.
 2. Usa solo la hoja del canal y la columna de peso del tipo de gestión. Un criterio sin peso en esa gestión no se evalúa.
@@ -56,6 +76,7 @@ Es el flujo que sigue el asesor en WhatsApp. Sirve como contexto para calificar;
    - Si algún HD es **No**: el monitoreo queda **reprobado**, nota 0, nivel Crítico. Suspende la Fase II y escala a la Dirección Comercial.
    - **HD-5**: si en el hilo aparece el mensaje "Tus datos serán tratados según nuestra política de protección de datos" con el enlace coopminutodedios.com/politica-de-privacidad, se califica **Sí**.
    - **Tipo de registro (para ECN-1 a ECN-5)**: identifícalo tú a partir de la conversación y devuélvelo (el analista no lo diligencia): **lead** (prospecto sin negocio abierto), **negocio** (ya hay un negocio en curso) o **atención por un requerimiento** (posventa, recibos, certificados, acuerdos de aportes, consultas de cobranza). Identifica también el **trámite** (crédito nuevo, renovación, posventa, acuerdo de aportes, otro) y la **línea** (consumo, educativo, bienes y servicios, microcrédito). Lead: ECN-4 es N/A. Negocio: ECN-1, ECN-2 y ECN-3 son N/A. Atención por un requerimiento: ECN-1 a ECN-4 son N/A. ECN-5 aplica siempre. Todos los ECN admiten N/A. Si el trámite no es crédito nuevo, WA-4 (documentos según el perfilamiento) es N/A. Si no hay evidencia, indica "indeterminado" y no marques N/A.
+   - **P3-1 a P3-4 según el tipo de registro**: lead: P3-2 y P3-3 son N/A (solo aplican a un negocio). Negocio: todos aplican. Atención por un requerimiento: P3-1, P3-2, P3-3 y P3-4 son N/A. P3-4 también es N/A si no hubo descalificación ni descarte. **P2-2** nunca es N/A: en un lead se evalúa el perfilamiento completo; en un negocio, que confirme o corrija el perfil registrado; en una atención, que identifique el tipo de requerimiento y el canal.
    - **Errores críticos ECU, ECN y ECC**: se evalúan con Sí/No, peso 0, y se miden como **% de casos sin error**. No reprueban ni restan puntos por sí solos.
    - Reporte inmediato a la Dirección Comercial (con soportes) si: HD-1, HD-2 o HD-3 en No (no hay filtro de seguridad antes de dar información sensible, o se entrega información a terceros no autorizados), ECU-2 en No (maltrato o servicio inadecuado) o ECC-2 en No (se alteran documentos).
 4. **Fase II (calidad)**: solo si pasó la Fase I. Para cada criterio aplicable: conducta, evidencia (cita breve), calificación Sí/No/N/A, peso logrado y mejora concreta si corresponde.
