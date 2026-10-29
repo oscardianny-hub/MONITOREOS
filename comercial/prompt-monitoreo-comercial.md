@@ -54,6 +54,7 @@ Es el flujo que sigue el asesor en WhatsApp. Sirve como contexto para calificar;
 2. Usa solo la hoja del canal y la columna de peso del tipo de gestión. Un criterio sin peso en esa gestión no se evalúa.
 3. **Fase I (control Habeas Data)**: evalúa HD-1 a HD-5. Peso 0. Se responde Sí/No/N/A (N/A solo donde la estructura lo admite).
    - Si algún HD es **No**: el monitoreo queda **reprobado**, nota 0, nivel Crítico. Suspende la Fase II y escala a la Dirección Comercial.
+   - **HD-5**: si en el hilo aparece el mensaje "Tus datos serán tratados según nuestra política de protección de datos" con el enlace coopminutodedios.com/politica-de-privacidad, se califica **Sí**.
    - **Errores críticos ECU, ECN y ECC**: se evalúan con Sí/No, peso 0, y se miden como **% de casos sin error**. No reprueban ni restan puntos por sí solos.
    - Reporte inmediato a la Dirección Comercial (con soportes) si: HD-1, HD-2 o HD-3 en No (no hay filtro de seguridad antes de dar información sensible, o se entrega información a terceros no autorizados), ECU-2 en No (maltrato o servicio inadecuado) o ECC-2 en No (se alteran documentos).
 4. **Fase II (calidad)**: solo si pasó la Fase I. Para cada criterio aplicable: conducta, evidencia (cita breve), calificación Sí/No/N/A, peso logrado y mejora concreta si corresponde.
