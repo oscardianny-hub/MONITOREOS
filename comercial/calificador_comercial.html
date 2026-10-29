@@ -242,11 +242,12 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
     <fieldset class="f" id="tipoReg" style="border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0">
       <legend style="font-weight:600;padding:0 6px">¿Qué se está monitoreando? (define si ECN-1 a ECN-5 aplican)</legend>
       <div class="tipsel" style="gap:16px">
+        <label><input type="radio" name="tipoReg" value="auto" checked> Automático (Claude lo identifica)</label>
         <label><input type="radio" name="tipoReg" value="lead"> Lead</label>
         <label><input type="radio" name="tipoReg" value="negocio"> Negocio</label>
         <label><input type="radio" name="tipoReg" value="atencion"> Atención por un requerimiento</label>
       </div>
-      <span class="msg" id="tipoMsg" aria-live="polite">Sin elegir: Claude decide cuáles ECN aplican.</span>
+      <span class="msg" id="tipoMsg" aria-live="polite">Automático: Claude identifica si es un lead, un negocio o una atención, y el trámite y la línea. Solo elige una opción si quieres corregirlo.</span>
     </fieldset>
     <details id="hubBox">
       <summary style="cursor:pointer;font-weight:600">Registro en HubSpot (opcional)</summary>
@@ -579,11 +580,25 @@ function applyHd5(){const i=C.findIndex(c=>c.code==="HD-5");if(i<0)return;const 
   st.evidencia="«Tus datos serán tratados según nuestra política de protección de datos» + coopminutodedios.com/politica-de-privacidad";st.conducta="Informa el tratamiento de datos con la política de privacidad.";st.mejora="";}
 const TIPO_NA={lead:["ECN-4"],negocio:["ECN-1","ECN-2","ECN-3"],atencion:["ECN-1","ECN-2","ECN-3","ECN-4"]};
 const TIPO_NOM={lead:"un lead",negocio:"un negocio",atencion:"una atención por un requerimiento"};
-const tipoReg=()=>{const r=document.querySelector('input[name=tipoReg]:checked');return r?r.value:"";};
-function showTipo(){const t=tipoReg(),m=$("tipoMsg");if(!m)return;
-  m.textContent=t?"Es "+TIPO_NOM[t]+": "+(TIPO_NA[t].length?TIPO_NA[t].join(", ")+" quedan N/A; ":"")+"los demás ECN se califican Sí o No.":"Sin elegir: Claude decide cuáles ECN aplican.";
+let tipoDet=null;
+const tipoMan=()=>{const r=document.querySelector('input[name=tipoReg]:checked');return r&&r.value!=="auto"?r.value:"";};
+const tipoReg=()=>tipoMan()||(tipoDet&&tipoDet.tipo)||"";
+const TRAM_NOM={credito_nuevo:"crédito nuevo",renovacion:"renovación",posventa:"posventa",acuerdo_aportes:"acuerdo de aportes",otro:"otro trámite"};
+const LIN_NOM={consumo:"consumo",educativo:"educativo",bienes_servicios:"bienes y servicios",microcredito:"microcrédito"};
+const okEnum=(v,o)=>Object.prototype.hasOwnProperty.call(o,v)?v:"";
+function leeTipo(res){const t=String(res&&res.tipo_registro||"").toLowerCase().replace(/[^a-z]/g,"");
+  const tipo=t==="lead"?"lead":t==="negocio"?"negocio":t.startsWith("atenci")?"atencion":"";
+  tipoDet={tipo,tramite:okEnum(String(res&&res.tramite||"").toLowerCase(),TRAM_NOM),linea:okEnum(String(res&&res.linea||"").toLowerCase(),LIN_NOM)};}
+function showTipo(){const t=tipoReg(),m=$("tipoMsg");if(!m)return;const d=tipoDet,man=tipoMan();
+  const ctx=!man&&d?[d.tramite?"trámite: "+TRAM_NOM[d.tramite]:"",d.linea?"línea: "+LIN_NOM[d.linea]:""].filter(Boolean).join(", "):"";
+  m.textContent=t?(man?"Elegido por ti: ":"Claude identificó: ")+TIPO_NOM[t]+(ctx?" ("+ctx+")":"")+". "+(TIPO_NA[t].length?TIPO_NA[t].join(", ")+" quedan N/A; ":"")+"los demás ECN se califican Sí o No."
+    :(d&&!man?"Claude no pudo identificar si es un lead, un negocio o una atención: elige una opción.":"Automático: Claude identifica si es un lead, un negocio o una atención, y el trámite y la línea. Solo elige una opción si quieres corregirlo.");
   $("ecnBox").hidden=!C.some(c=>c.code==="ECN-1")||t==="negocio"||t==="atencion";}
-function applyTipo(fixOrig){const t=tipoReg();if(!t)return;
+function applyTramite(fixOrig){const d=tipoDet,i=C.findIndex(c=>c.code==="WA-4");if(i<0||!d)return;
+  if(!d.tramite||d.tramite==="credito_nuevo")return;const st=state[i];
+  st.cal="NA";st.razon="No aplica: el trámite es "+TRAM_NOM[d.tramite]+", no un crédito nuevo con perfilamiento.";st.evidencia="Trámite identificado en la conversación.";st.conducta="";st.mejora="";
+  if(fixOrig||!st.orig)st.orig=st.cal;}
+function applyTipo(fixOrig){applyTramite(fixOrig);const t=tipoReg();if(!t)return;
   C.forEach((c,i)=>{if(c.kind!=="ECN")return;const st=state[i];
     if(TIPO_NA[t].includes(c.code)){st.cal="NA";st.razon="No aplica: lo monitoreado es "+TIPO_NOM[t]+".";st.evidencia="Tipo de registro elegido por el analista.";st.conducta="";st.mejora="";}
     else if(st.cal==="NA"){st.cal="NE";st.razon="Aplica a "+TIPO_NOM[t]+", pero se había marcado N/A: revísalo.";st.evidencia="";}
@@ -625,7 +640,7 @@ function applyEcn(fixOrig){const i=C.findIndex(c=>c.code==="ECN-1");if(i<0||TIPO
 function datosTxt(){const g=fecha("fGest"),r=fecha("fRec"),s=fecha("fRes"),a=fecha("fAsig"),p=fecha("fPrim");
   const l=[g?"fecha y hora de la gestión: "+fTxt(g):"",canal==="correo"&&r?"correo del usuario recibido el "+fTxt(r):"",canal==="correo"&&s?"respuesta del asesor enviada el "+fTxt(s):"",
     canal==="correo"&&($("asesorMail").value||"").trim()?"correo calificado: el que salió desde "+$("asesorMail").value.trim():"",a?"lead asignado el "+fTxt(a):"",p?"primer contacto el "+fTxt(p):""].filter(Boolean);
-  const tr=tipoReg();if(tr)l.push("lo monitoreado es "+TIPO_NOM[tr]+": "+(TIPO_NA[tr].length?"la herramienta marca N/A "+TIPO_NA[tr].join(", ")+" (devuélvelos «NA»); ":"")+"califica los demás ECN con Sí o No (o «NE» si dependen de HubSpot y no se aportó)");
+  const tr=tipoMan();if(tr)l.push("lo monitoreado es "+TIPO_NOM[tr]+": "+(TIPO_NA[tr].length?"la herramienta marca N/A "+TIPO_NA[tr].join(", ")+" (devuélvelos «NA»); ":"")+"califica los demás ECN con Sí o No (o «NE» si dependen de HubSpot y no se aportó)");
   return l.length?"\nDATOS REGISTRADOS POR EL ANALISTA (úsalos como dato cierto; ECN-1, si hay fechas de asignación y primer contacto, lo califica la herramienta: devuélvelo «NE»):\n- "+l.join("\n- ")+"\n":"";}
 function buildPrompt(chat){
 return `Eres analista de calidad comercial (Preventa y Venta) de una cooperativa colombiana. Califica la interacción con el formato de monitoreo comercial PV-FR-62 (instructivo PV-IN-04), canal ${CANALES[canal].nombre.toUpperCase()}, gestión «${GEST[gi]}». Responde en español, con tono profesional y neutral.
@@ -656,8 +671,9 @@ CRITERIOS (código | propiedad | criterio | peso | regla N/A)
 ${criteriaText()}
 
 FORMATO DE SALIDA: responde SOLO con un objeto JSON, sin texto adicional:
-{"canal":"${canal}|otro canal|indeterminado","asesor":"nombre del asesor si aparece, o vacío","criterios":[{"codigo":"HD-1","calificacion":"Si|No|NA|NE","razon":"...","conducta":"conducta evaluada, una frase","evidencia":"...","mejora":"..."}],"observacion":"...","fortalezas":["..."],"oportunidades":["..."],"plan_accion":[{"accion":"...","plazo":"..."}]}
+{"canal":"${canal}|otro canal|indeterminado","asesor":"nombre del asesor si aparece, o vacío","tipo_registro":"lead|negocio|atencion|indeterminado","tramite":"credito_nuevo|renovacion|posventa|acuerdo_aportes|otro|indeterminado","linea":"consumo|educativo|bienes_servicios|microcredito|ninguna|indeterminado","criterios":[{"codigo":"HD-1","calificacion":"Si|No|NA|NE","razon":"...","conducta":"conducta evaluada, una frase","evidencia":"...","mejora":"..."}],"observacion":"...","fortalezas":["..."],"oportunidades":["..."],"plan_accion":[{"accion":"...","plazo":"..."}]}
 Incluye los ${C.length} criterios en orden.
+IDENTIFICACIÓN (obligatoria, antes de calificar): "tipo_registro" = «lead» si la persona es un prospecto sin negocio abierto (primer contacto, consulta inicial, quiere información o iniciar un crédito); «negocio» si ya hay un negocio en curso (estudio, documentos pendientes, aprobación, desembolso, renovación en trámite); «atencion» si es un requerimiento o servicio sin proceso comercial nuevo (posventa, recibos de pago, certificados, acuerdos de aportes, consultas de cobranza). "tramite" = credito_nuevo, renovacion, posventa, acuerdo_aportes u otro; "linea" = consumo, educativo, bienes_servicios o microcredito, o «ninguna». Si no hay evidencia, «indeterminado».
 ${asesorTxt()?"\nASESOR INDICADO POR EL ANALISTA: "+asesorTxt()+"\n":""}${datosTxt()}${procPrompt()}${hubOn()?"\nREGISTRO EN HUBSPOT APORTADO POR EL ANALISTA:\n<<<\n"+$("hub").value.trim()+"\n>>>\n":""}
 INTERACCIÓN (${CANALES[canal].nombre.toUpperCase()}):
 <<<
@@ -703,6 +719,7 @@ function apply(res){
   // Los ítems de HubSpot los selecciona el analista si no se aportó el registro.
   if(!hubOn())C.forEach((c,i)=>{if(c.hub){const st=state[i];st.cal="NE";st.razon="Depende de HubSpot y no se aportó el registro.";st.evidencia="Lo selecciona el analista en HubSpot.";st.mejora="";st.conducta="";}});
   applyHd5();
+  leeTipo(res);showTipo();
   applyTipo(true);
   applyEcn(true);
   state.forEach(st=>{st.orig=st.cal;});
@@ -861,7 +878,7 @@ function setChannel(v){
   canal=v;gi=parseInt($("gest").value,10)||0;setup();extra=null;$("analysis").hidden=true;
   $("chatLabel").textContent=CANALES[v].label;$("chatHelp").textContent=CANALES[v].help;
   $("pendingNote").hidden=true;
-  $("correoBox").hidden=v!=="correo";$("procBox").hidden=v!=="whatsapp";showTipo();showEcn();
+  $("correoBox").hidden=v!=="correo";$("procBox").hidden=v!=="whatsapp";tipoDet=null;showTipo();showEcn();
   buildRows();recalc();setStatus("");
 }
 setChannel("whatsapp");
@@ -878,7 +895,7 @@ $("chatFile").addEventListener("change",async()=>{const f=$("chatFile").files[0]
     $("chat").value=txt;m.textContent="Listo: se cargaron "+txt.length.toLocaleString("es-CO")+" caracteres de «"+f.name+"». Revisa que esté la interacción completa.";
     if(txt.length>60000){m.className="msg warn";m.textContent+=" Es muy largo: quita lo que no se evalúa para gastar menos.";}}
   catch(e){m.className="msg err";m.textContent="No se pudo leer el archivo ("+(e&&e.message||e)+"). Prueba con otro formato o pega el texto.";}});
-$("clear").addEventListener("click",()=>{$("chat").value="";$("hub").value="";$("asesorN").value="";["fGest","fRec","fRes","fAsig","fPrim"].forEach(id=>$(id).value="");document.querySelectorAll("input[name=tipoReg]").forEach(r=>r.checked=false);showTipo();showEcn();$("fileMsg").textContent="";state=C.map(blank);extra=null;$("analysis").hidden=true;recalc();setStatus("");});
+$("clear").addEventListener("click",()=>{$("chat").value="";$("hub").value="";$("asesorN").value="";["fGest","fRec","fRes","fAsig","fPrim"].forEach(id=>$(id).value="");tipoDet=null;document.querySelector("input[name=tipoReg][value=auto]").checked=true;showTipo();showEcn();$("fileMsg").textContent="";state=C.map(blank);extra=null;$("analysis").hidden=true;recalc();setStatus("");});
 $("copyTxt").addEventListener("click",()=>copy(resultText()));
 $("copyTsv").addEventListener("click",()=>copy(resultTsv()));
 $("copyAna").addEventListener("click",()=>copyTo(analysisText(),$("anaMsg")));
