@@ -1,0 +1,27 @@
+PROCESO WHATSAPP · SEDES COMERCIALES (actividad · responsable)
+1. El usuario o asociado ingresa al canal de WhatsApp.
+2. Se asigna la conversación a un asesor comercial en el aplicativo (CRM asignado, Coordinador o Analista comercial).
+3. ¿Ingresa dentro del horario de atención? Sí: actividad 4. No: actividad 13.
+4. El asesor atiende con base en el hilo sostenido con el Asistente Virtual BLUE, usando los guiones según el tipo de requerimiento.
+5. ¿El usuario responde? Sí: actividad 6. No: actividad 14.
+6. ¿BLUE hizo las preguntas de validación de identidad? Sí: actividad 7. No: actividad 8.
+7. El asesor valida en CYGNUS que los datos suministrados estén correctos y, si no, los ajusta. Sigue a la 9.
+8. El asesor hace las preguntas de validación de titularidad para confirmar identidad, u otras según el protocolo.
+9. ¿El usuario está creado como contacto en el CRM? Sí: actividad 11. No: actividad 10.
+10. El asesor crea el contacto en el CRM.
+11. El asesor asocia la cuenta del usuario en el CRM según la PV-IN-02.
+12. El asesor da la asesoría comercial según AS-026, PV-PR-01, PV-PR-02, PV-PR-03, PV-PR-08, las fichas PV-DG-03, PV-DG-04, PV-DG-05 y PV-DG-09, PV-LM-04 (productos autorizados por sede) y AS-PR-02 (trámites con el asociado); recibos de pago: CT-IN-04 y CT-IN-08. Sigue a la 16. Si la conversación está bloqueada por espera superior a 24 horas: actividad 17; si no: actividad 4.
+13. Fuera de horario: el asesor valida con el guion si el usuario sigue en línea.
+14. ¿Se recibe respuesta? Sí: actividad 6.
+15. El asesor pregunta por plantilla en qué puede servir y espera respuesta 5 minutos. Si responde: 15.1. Si no: actividad 17.
+15.1 Solicita por fragmento tiempo en línea para validaciones según el requerimiento. Si es posventa (recibos de pago): ver 12.
+15.2 Igual, si es un acuerdo de aportes: ver 12.
+15.3 Solicita por plantilla tiempo en línea; si es crédito nuevo, hace el perfilamiento de las líneas de la actividad 12.
+15.4 Identificado el perfilamiento, solicita los documentos de cada línea.
+15.5 Si es una renovación, da el fragmento y genera 15.7 y 15.8.
+15.6 Envía la encuesta de satisfacción y cierra la conversación.
+15.7 Crea en HubSpot una tarea para validar la radicación.
+15.8 ¿Hubo radicación? Sí: revisar y subsanar pendientes. No: hacer 15.6 y abrir conversación por WhatsApp.
+15.9 ¿Hubo radicación? Sí: revisar y subsanar pendientes. No: hacer 15.6 y llamar.
+16. El asesor cierra la conversación.
+17 a 22. Seguimiento mensual, monitoreo aleatorio y retroalimentación sobre la AS-026; plan de acción si hay falencias; monitoreo en tiempo real del canal y ajuste de horarios o funciones del equipo (Asesor y Analista comercial).

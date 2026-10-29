@@ -1,0 +1,998 @@
+<title>Calificador Comercial</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working column. Input panel on top, score summary strip, then the 26-row PV-FR-59 table. */
+:root{
+  --bg:#f4f6f5; --surface:#ffffff; --ink:#15302b; --muted:#5b6f6a; --line:#d6dfdc;
+  --accent:#0f6b5c; --accent-ink:#ffffff; --accent-soft:#e1efeb;
+  --si:#1d7a46; --si-bg:#e3f3e8; --no:#b4372d; --no-bg:#fbe7e4;
+  --na:#5d6b78; --na-bg:#eceff2; --ne:#9a6200; --ne-bg:#fdf1d8;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1715; --surface:#16211e; --ink:#e3ece9; --muted:#9db1ab; --line:#2a3a36;
+  --accent:#4fbfa8; --accent-ink:#06201b; --accent-soft:#1b302b;
+  --si:#6fd39a; --si-bg:#16301f; --no:#f08a7f; --no-bg:#3a1c19;
+  --na:#a8b4bf; --na-bg:#232b31; --ne:#f0bf5a; --ne-bg:#352a12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1715; --surface:#16211e; --ink:#e3ece9; --muted:#9db1ab; --line:#2a3a36;
+  --accent:#4fbfa8; --accent-ink:#06201b; --accent-soft:#1b302b;
+  --si:#6fd39a; --si-bg:#16301f; --no:#f08a7f; --no-bg:#3a1c19;
+  --na:#a8b4bf; --na-bg:#232b31; --ne:#f0bf5a; --ne-bg:#352a12; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+header{display:grid;gap:6px}
+.eyebrow{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 clamp(28px,4vw,40px)/1.1 var(--f-display);margin:0;text-wrap:balance}
+h2{font:600 20px/1.2 var(--f-display);margin:0}
+.lede{color:var(--muted);margin:0;max-width:70ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px;min-width:0}
+.channels{display:flex;flex-wrap:wrap;gap:8px}
+.chan{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;background:var(--bg)}
+.chan input{accent-color:var(--accent)}
+.chan.off{opacity:.65;cursor:not-allowed}
+.chan small{color:var(--ne);font-weight:500}
+label.f{display:grid;gap:6px;font-weight:500}
+label.f span.h{font-weight:400;color:var(--muted);font-size:13px}
+textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-body);padding:10px 12px;resize:vertical}
+textarea:focus,select:focus,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#chat{min-height:220px}
+#tipif{min-height:56px}
+[hidden]{display:none!important}
+.chk{display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer}
+.tipbox{display:grid;gap:6px}
+.tipsel{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.tipsel select{width:100%;font-weight:500}
+.analista{display:block;margin-top:4px;font-size:12px;font-weight:600;color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:600 14px var(--f-body);border-radius:8px;padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+.msg{font-size:14px;color:var(--muted)}
+.msg.warn{color:var(--ne)}
+.msg.err{color:var(--no)}
+.pending{border:1px dashed var(--ne);background:var(--ne-bg);color:var(--ink);border-radius:8px;padding:12px 14px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:2px;min-width:0}
+.stat .k{font:500 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:700 30px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat .s{font-size:13px;color:var(--muted)}
+.stat.main{border-color:var(--accent);background:var(--accent-soft)}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:13.5px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+th{font:500 11.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg);position:sticky;top:0}
+tr.dim td{background:var(--bg);font:600 13px var(--f-display);color:var(--accent);padding-block:7px}
+td.n,td.w{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.crit{width:24%}
+td.crit .prop{display:block;font:500 11px var(--f-mono);color:var(--accent);margin-top:3px;overflow-wrap:anywhere}
+.why{margin-top:6px;font-size:12px}
+.why summary{cursor:pointer;color:var(--accent);font-weight:600}
+.why div{margin-top:4px;display:grid;gap:4px;color:var(--ink)}
+.why p{margin:0}
+td.crit .na-rule{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+td.ev{color:var(--muted);font-style:italic}
+select{font:600 13px var(--f-body);border-radius:6px;padding:5px 6px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+select.Si{background:var(--si-bg);color:var(--si);border-color:var(--si)}
+select.No{background:var(--no-bg);color:var(--no);border-color:var(--no)}
+select.NA{background:var(--na-bg);color:var(--na);border-color:var(--na)}
+select.NE{background:var(--ne-bg);color:var(--ne);border-color:var(--ne)}
+.flag{display:inline-block;margin-top:4px;font-size:11.5px;font-weight:600;color:var(--no)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.cols ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.obsA{display:block;width:100%;min-width:150px;margin-top:6px;font:inherit;font-size:12.5px;padding:6px 8px;border-radius:6px;border:1px solid var(--accent);background:var(--surface);color:var(--ink);resize:vertical;min-height:52px}
+tfoot tr.total th,tfoot tr.total td{font-weight:700;border-top:2px solid var(--line);background:var(--accent-soft);padding-top:10px;padding-bottom:10px}
+.obsA.req{border-color:var(--no);box-shadow:0 0 0 1px var(--no)}
+.orig{display:block;font-size:11.5px;color:var(--muted);margin-top:4px}
+.copybar{display:grid;gap:6px;margin-bottom:14px;justify-items:start}
+.hcopy{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+button.mini{font-size:12px;padding:3px 10px;font-weight:500}
+.redo{display:grid;gap:8px;margin-top:14px;padding:12px 14px;border:1px dashed var(--line);border-radius:8px}
+.plan{margin:0;padding-left:20px;display:grid;gap:6px}
+.obs{font-size:15px;margin:0;padding:12px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0}
+.lists{display:grid;gap:6px;font-size:14px}
+.lists p{margin:0}
+.monthly .scores{font-family:var(--f-mono)}
+input[type=datetime-local]{box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:14px var(--f-mono);padding:8px 10px;max-width:260px}
+input[type=text]{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:14px var(--f-mono);padding:9px 12px}
+.levels{display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px;color:var(--muted)}
+.levels span{border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.levels span.on{border-color:var(--accent);color:var(--ink);background:var(--accent-soft);font-weight:600}
+footer{color:var(--muted);font-size:12.5px}
+.guide summary{cursor:pointer}
+.guide .about{margin:0 0 12px;font-size:14px}
+.guide h3{font:600 15px var(--f-display);margin:0 0 6px;color:var(--accent)}
+.guide ol,.guide ul{margin:0;padding-left:20px;display:grid;gap:5px;font-size:14px}
+@media (prefers-reduced-motion:no-preference){.spin{display:inline-block;animation:p 1.2s ease-in-out infinite}@keyframes p{50%{opacity:.35}}}
+</style>
+<style>
+/* Añadidos del calificador comercial */
+tr.sec td{background:var(--accent-soft);font:600 13px var(--f-display);color:var(--ink);padding-block:8px}
+tr.sec td small{display:block;font:400 12px var(--f-body);color:var(--muted);margin-top:2px}
+.pill{display:inline-block;font:600 12px var(--f-body);padding:2px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg)}
+.pill.ok{color:var(--si);background:var(--si-bg);border-color:var(--si)}
+.pill.bad{color:var(--no);background:var(--no-bg);border-color:var(--no)}
+.pill.pend{color:var(--ne);background:var(--ne-bg);border-color:var(--ne)}
+.stat .v.sm{font-size:20px}
+.stat .lines{display:grid;gap:3px;margin-top:4px;font-size:13px}
+select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
+.tipsel input[type=text]{max-width:320px}
+.alertbox{border:1px solid var(--no);background:var(--no-bg);color:var(--ink);border-radius:8px;padding:10px 14px;font-weight:600}
+.muestra{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.muestra label{display:grid;gap:4px;font-size:13px;font-weight:500}
+.muestra input,.muestra select{font:14px var(--f-mono);padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">PV-IN-04 · PV-FR-62 · Preventa y Venta · Herramienta <span class="ver"></span></div>
+    <h1>Calificador de monitoreos comerciales</h1>
+    <p class="lede">Elige el canal y el tipo de gestión, pega la interacción, pide la calificación y revisa cada criterio. Puedes cambiar cualquier calificación antes de copiar el resultado; la nota se recalcula con los pesos y el traslado de N/A del formato.</p>
+  </header>
+
+  <details class="panel guide" id="acerca">
+    <summary><h2 style="display:inline">Acerca del calificador</h2></summary>
+    <div class="cols">
+      <div>
+        <h3>Para qué sirve</h3>
+        <p class="about">Califica los monitoreos comerciales por WhatsApp, correo, llamada y atención presencial, con los criterios, pesos y traslados de N/A de la estructura comercial (Comercial, Cobranza consulta y Cobranza campaña). Está hecho a partir del Calificador CUSI.</p>
+        <h3>Créditos</h3>
+        <p class="about">Cada calificación con Claude gasta de la cuenta de quien la hace. Calificar a mano en la tabla no gasta nada.</p>
+      </div>
+      <div>
+        <h3>Cómo se califica</h3>
+        <ol>
+          <li><strong>Fase I · Habeas Data (HD):</strong> si algún ítem es No, el monitoreo queda reprobado, con nota 0, y se reporta de inmediato a la Dirección Comercial.</li>
+          <li><strong>Errores críticos ECU, ECN y ECC:</strong> se miden como porcentaje de casos sin error. No restan puntos por sí solos.</li>
+          <li><strong>Fase II:</strong> nota sobre 100. Un N/A pasa su peso completo al ítem indicado. Aprueba con 85% o más; por debajo de 85% el asesor envía plan de acción.</li>
+          <li><strong>Niveles:</strong> los mismos del CUSI, aplicados al promedio mensual del asesor.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Sin conexión con Claude</h3>
+        <p class="about">Si el botón «Calificar con Claude» no responde, usa «Hazlo desde el chat de Claude» o califica a mano en la tabla. También sirve en la copia descargada.</p>
+        <h3>Límites</h3>
+        <p class="about">Los ítems que dependen de lo registrado en HubSpot (SLA, etapas, actividades, notas, tareas) solo los califica Claude si pegas ese registro en el cuadro opcional; si no, los selecciona el analista. En llamada, el manejo de la espera (LL-2) lo propone Claude con la transcripción y el analista lo confirma al oír el audio. ECN-1 se califica solo cuando escribes la asignación y el primer contacto. El horario hábil de ECN-1 (08:00 a 18:00, lunes a viernes) está confirmado. Las reglas de horarios de cobranza y los tiempos de respuesta son de referencia: confírmalos con la operación.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="panel guide" id="guia">
+    <summary><h2 style="display:inline">Guía rápida: cómo preparar la interacción y gastar menos</h2></summary>
+    <div class="cols">
+      <div><h3>WhatsApp</h3><ol><li>Abre la conversación en HubSpot y sube hasta el primer mensaje.</li><li>Copia del saludo al cierre.</li><li>Pégala con el canal WhatsApp.</li></ol></div>
+      <div><h3>Correo</h3><ol><li>Pega el hilo completo, con fechas y horas.</li><li>Indica el correo de salida del asesor si el hilo tiene varias respuestas.</li></ol></div>
+      <div><h3>Llamada y presencial</h3><ol><li>Llamada: si tu central tiene transcripción, cópiala del detalle de la llamada; si no, descarga la grabación y transcríbela en Word en la web con «Transcribir».</li><li>Pégala con el canal Llamada, con horas si las tiene.</li><li>Presencial: escribe las notas de la atención y qué se hizo en la sede.</li></ol></div>
+      <div><h3>Archivo (texto, Word o PDF)</h3><ol><li>Pulsa «Cargar desde archivo» y elige el .txt, .docx o .pdf de la conversación.</li><li>La página saca solo el texto en tu navegador: gasta lo mismo que pegarlo.</li><li>Si el PDF es escaneado (imagen) no tiene texto: ábrelo con Word y guárdalo como .docx.</li><li>Revisa el texto cargado y borra encabezados y pies de página.</li></ol></div>
+      <div><h3>Para gastar menos</h3><ul><li>Solo texto, sin capturas.</li><li>Borra lo que no se califica: bot, líneas de sistema, encuestas.</li><li>Califica una vez y corrige en la tabla.</li></ul></div>
+    </div>
+  </details>
+
+  <section class="panel" aria-labelledby="t-in">
+    <h2 id="t-in">Interacción</h2>
+    <div class="channels" role="radiogroup" aria-label="Canal">
+      <label class="chan"><input type="radio" name="canal" value="whatsapp" checked> WhatsApp</label>
+      <label class="chan"><input type="radio" name="canal" value="correo"> Correo</label>
+      <label class="chan"><input type="radio" name="canal" value="llamada"> Llamada</label>
+      <label class="chan"><input type="radio" name="canal" value="presencial"> Presencial</label>
+    </div>
+    <div class="tipsel">
+      <label class="f" for="gest">Tipo de gestión
+        <select id="gest" class="gest"><option value="0">Comercial</option><option value="1">Cobranza - consulta</option><option value="2">Cobranza - campaña</option></select>
+      </label>
+      <label class="f" for="asesorN">Asesor (opcional)
+        <input type="text" id="asesorN" list="asesoresDL" placeholder="Elige de la lista o escribe" autocomplete="off">
+        <datalist id="asesoresDL"></datalist>
+      </label>
+      <label class="f" for="fGest">Fecha y hora de la gestión (opcional)
+        <input type="datetime-local" id="fGest">
+      </label>
+    </div>
+    <details id="listaBox">
+      <summary style="cursor:pointer;font-weight:600">Lista de asesores</summary>
+      <label class="f" for="listaAs" style="margin-top:10px">Un asesor por línea
+        <span class="h">Se guarda solo en este navegador y alimenta la lista de arriba. No se envía a ningún lado.</span>
+        <textarea id="listaAs" style="min-height:90px" placeholder="Nombre Apellido"></textarea>
+      </label>
+      <div class="row"><button id="saveLista" type="button">Guardar lista</button><span class="msg" id="listaMsg" aria-live="polite"></span></div>
+    </details>
+    <details id="procBox">
+      <summary style="cursor:pointer;font-weight:600">Proceso de WhatsApp de sedes comerciales (parámetro)</summary>
+      <label class="f" style="margin-top:10px;flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="procOn" checked style="width:auto"> Usar este proceso como referencia al calificar WhatsApp</label>
+      <label class="f" for="procTxt">Texto del proceso
+        <span class="h">Es contexto para Claude: no crea criterios ni cambia pesos. Puedes editarlo; se guarda solo en este navegador.</span>
+        <textarea id="procTxt" style="min-height:220px"></textarea>
+      </label>
+      <div class="row"><button id="procReset" type="button">Restaurar el proceso original</button><span class="msg" id="procMsg" aria-live="polite"></span></div>
+    </details>
+    <div class="f" id="correoBox" hidden>
+      <span style="font-weight:500">Correo a calificar</span>
+      <span class="h">Pega el hilo completo (sirve de contexto); solo se califica el correo final que salió desde esta dirección. Las fechas son opcionales y Claude las usa como dato.</span>
+      <div class="tipsel">
+        <input type="text" id="asesorMail" placeholder="Correo de salida (ej.: asesor@…)" aria-label="Correo desde donde salió la respuesta" style="max-width:320px">
+        <label class="f" for="fRec" style="font-size:13px">Correo del usuario (recibido)<input type="datetime-local" id="fRec"></label>
+        <label class="f" for="fRes" style="font-size:13px">Respuesta del asesor (correo calificado)<input type="datetime-local" id="fRes"></label>
+      </div>
+    </div>
+    <div class="f" id="ecnBox" hidden>
+      <span style="font-weight:500">Primer contacto del lead (ECN-1)</span>
+      <span class="h">Si escribes las dos fechas, la página califica sola ECN-1: el primer contacto debe darse dentro de 3 horas hábiles desde la asignación (sin sábados, domingos ni festivos de Colombia, y solo dentro del horario hábil de abajo).</span>
+      <div class="tipsel">
+        <label class="f" for="fAsig" style="font-size:13px">Asignación del lead<input type="datetime-local" id="fAsig"></label>
+        <label class="f" for="fPrim" style="font-size:13px">Primer contacto<input type="datetime-local" id="fPrim"></label>
+        <label class="f" for="hIni" style="font-size:13px">Horario hábil desde<input type="time" id="hIni" value="08:00"></label>
+        <label class="f" for="hFin" style="font-size:13px">hasta<input type="time" id="hFin" value="18:00"></label>
+      </div>
+      <span class="msg" id="ecnMsg" aria-live="polite"></span>
+    </div>
+    <div id="pendingNote" class="pending" hidden></div>
+    <label class="f" for="chat"><span id="chatLabel">Transcripción de la conversación</span>
+      <span class="h" id="chatHelp"></span>
+      <textarea id="chat" placeholder="Ejemplo:&#10;[09:02] Asociado: Buenos días, quiero información de un crédito&#10;[09:03] Asesor: ¡Hola! Bienvenido a la Cooperativa…"></textarea>
+    </label>
+    <div class="row">
+      <input type="file" id="chatFile" accept=".txt,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <button id="loadFile" type="button">Cargar desde archivo (.txt, .docx o .pdf)</button>
+      <span class="msg" id="fileMsg" aria-live="polite"></span>
+    </div>
+    <details id="hubBox">
+      <summary style="cursor:pointer;font-weight:600">Registro en HubSpot (opcional)</summary>
+      <label class="f" for="hub" style="margin-top:10px">Pega aquí lo que muestra HubSpot del caso
+        <span class="h">Actividades, notas, tareas, etapa del negocio, fechas de asignación y primer contacto. Con esto Claude puede calificar los ítems marcados «HubSpot»; sin esto quedan para el analista.</span>
+        <textarea id="hub" style="min-height:90px"></textarea>
+      </label>
+    </details>
+    <div class="row">
+      <button class="primary" id="go">Calificar con Claude</button>
+      <button id="stop" hidden>Detener</button>
+      <button id="clear">Limpiar</button>
+      <span class="msg" id="status" aria-live="polite"></span>
+    </div>
+    <details id="manual">
+      <summary style="cursor:pointer;font-weight:600">¿No califica? Hazlo desde el chat de Claude</summary>
+      <div style="display:grid;gap:10px;margin-top:10px">
+        <p class="msg" style="margin:0">1. Pega la interacción arriba y pulsa «Copiar instrucciones». 2. Pégalas en un chat nuevo de claude.ai. 3. Copia la respuesta completa de Claude, pégala aquí y pulsa «Cargar respuesta».</p>
+        <div class="row"><button id="copyPrompt">Copiar instrucciones</button><span class="msg" id="promptMsg" aria-live="polite"></span></div>
+        <textarea id="promptFallback" hidden readonly rows="5"></textarea>
+        <textarea id="answer" rows="5" placeholder="Pega aquí la respuesta de Claude (empieza con {)"></textarea>
+        <div class="row"><button id="loadAnswer">Cargar respuesta</button></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="summary" id="summary" aria-label="Resultado">
+    <div class="stat main"><span class="k">Nota de la interacción</span><span class="v" id="sScore">—</span><span class="s" id="sScoreSub">Sin calificar</span></div>
+    <div class="stat"><span class="k">Fase I · Habeas Data</span><span class="v sm" id="sFase">—</span><span class="s" id="sFaseSub">HD-1 a HD-5</span></div>
+    <div class="stat"><span class="k">Nivel y estado</span><span class="v sm" id="sNivel">—</span><span class="s" id="sNivelSub">Aprueba con 85% o más</span></div>
+    <div class="stat"><span class="k">Errores críticos</span><div class="lines" id="sCrit">—</div></div>
+  </section>
+  <div class="alertbox" id="alerta" hidden></div>
+
+  <section class="tablebox" aria-label="Evaluación por criterio">
+    <table>
+      <thead><tr><th>Código</th><th>Criterio</th><th>Peso</th><th>Calificación</th><th>Logrado / esperado</th><th>Conducta evaluada</th><th>Evidencia</th><th>Mejora sugerida</th><th>Observación del analista</th></tr></thead>
+      <tbody id="rows"></tbody>
+      <tfoot><tr class="total"><td></td><th scope="row">Total obtenido</th><td class="w" id="totW">100</td><td></td><td class="w" id="totGot">—</td><td colspan="4" id="totNote"></td></tr></tfoot>
+    </table>
+  </section>
+
+  <section class="panel" id="analysis" hidden>
+    <div class="copybar">
+      <button class="primary" id="copyAna">Copiar análisis para el formulario</button>
+      <span class="msg" id="anaMsg" aria-live="polite">Copia la observación, las fortalezas, las oportunidades y el plan de acción, listos para pegar. También puedes copiar cada parte con su botón «Copiar».</span>
+    </div>
+    <h2 class="hcopy">Observación para el formato <button class="mini" data-copy="obs">Copiar</button></h2>
+    <p class="obs" id="obs"></p>
+    <div class="lists" id="naList"></div>
+    <div class="cols">
+      <div><h2 class="hcopy" style="font-size:17px;margin-bottom:8px">Fortalezas <button class="mini" data-copy="fort">Copiar</button></h2><ul id="fort"></ul></div>
+      <div><h2 class="hcopy" style="font-size:17px;margin-bottom:8px">Oportunidades de mejora <button class="mini" data-copy="opor">Copiar</button></h2><ul id="opor"></ul></div>
+    </div>
+    <h2 class="hcopy" style="font-size:17px;margin:14px 0 8px">Plan de acción sugerido <button class="mini" data-copy="plan">Copiar</button></h2>
+    <ol class="plan" id="plan"></ol>
+    <div class="redo" id="redoBox">
+      <p class="msg" id="redoMsg" style="margin:0"></p>
+      <div class="row"><button id="redo">Actualizar análisis con mis cambios</button><span class="msg" id="redoStatus" aria-live="polite"></span></div>
+      <details id="redoManual">
+        <summary style="cursor:pointer;font-weight:600">¿El botón «Actualizar análisis» no funciona? Hazlo desde el chat de Claude</summary>
+        <div style="display:grid;gap:10px;margin-top:10px">
+          <p class="msg" style="margin:0">1. Pulsa «Copiar instrucciones del análisis». 2. Pégalas en un chat nuevo de claude.ai. 3. Copia la respuesta de Claude (empieza con {), pégala abajo y pulsa «Cargar análisis».</p>
+          <div class="row"><button id="copyRedo">Copiar instrucciones del análisis</button><span class="msg" id="redoPromptMsg" aria-live="polite"></span></div>
+          <textarea id="redoFallback" hidden readonly rows="5"></textarea>
+          <textarea id="redoAnswer" rows="5" placeholder="Pega aquí la respuesta de Claude (empieza con {)"></textarea>
+          <div class="row"><button id="loadRedo">Cargar análisis</button></div>
+        </div>
+      </details>
+    </div>
+    <div class="row">
+      <button id="copyTxt">Copiar resultado</button>
+      <button id="copyTsv">Copiar tabla para Excel</button>
+      <button id="addCarga">Agregar a la carga del Excel</button>
+      <span class="msg" id="copyMsg" aria-live="polite"></span>
+    </div>
+    <textarea id="copyFallback" hidden readonly rows="6"></textarea>
+  </section>
+
+  <section class="panel monthly" aria-labelledby="t-m">
+    <h2 id="t-m">Resultado del asesor en el periodo</h2>
+    <p class="lede" style="font-size:14px">Con las notas (sobre 100) de todas las interacciones monitoreadas del asesor: promedio, equivalente sobre 300 y nivel del CUSI.</p>
+    <label class="f" for="scores">Notas de las interacciones (sobre 100), separadas por punto y coma
+      <input type="text" id="scores" placeholder="Ej.: 92; 85; 100">
+    </label>
+    <div class="row"><button id="addScore">Agregar la nota actual</button><span class="msg" id="mOut">Escribe las notas para ver el nivel.</span></div>
+    <div class="levels" id="levels">
+      <span data-l="Crítico">Crítico 0–209 · llamado de atención y plan de trabajo</span>
+      <span data-l="Básico">Básico 210–239 · retroalimentación</span>
+      <span data-l="En alerta">En alerta 240–275 · compromisos</span>
+      <span data-l="Óptimo">Óptimo 276–300 · sin compromisos</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-c">
+    <h2 id="t-c">Carga de la muestra al Excel</h2>
+    <p class="lede" style="font-size:14px">Cada interacción que agregues se guarda aquí (en este navegador). Al terminar la muestra, descarga un Excel con una hoja por asesor, canal y gestión, ya en las celdas de la hoja ASESOR de «Estructura_Monitoreo_Comercial_CUSI.xlsx» (hasta 6 conversaciones por hoja).</p>
+    <div class="muestra">
+      <label for="cId">Fecha / ID de la interacción<input type="text" id="cId" placeholder="Ej.: 2026-10-14 · caso 5821"></label>
+      <label for="cMes">Mes del monitoreo<select id="cMes"><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select></label>
+    </div>
+    <div id="cargaList" class="lists"></div>
+    <div class="row">
+      <button class="primary" id="dlCarga">Descargar Excel de carga</button>
+      <button id="clearCarga">Vaciar la carga</button>
+      <span class="msg" id="cargaMsg" aria-live="polite">Aún no hay interacciones en la carga.</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-s">
+    <h2 id="t-s">Muestra del mes</h2>
+    <p class="lede" style="font-size:14px">Cuántas interacciones monitorear, con la fórmula de población finita (p = q = 0,5). El reparto proporcional al volumen por asesor está en la estructura en Excel.</p>
+    <div class="muestra">
+      <label for="mN">N (población de casos)<input type="number" id="mN" min="0" step="1" placeholder="Ej.: 1200"></label>
+      <label for="mC">Nivel de confianza<select id="mC"><option value="1.645">90%</option><option value="1.96" selected>95%</option><option value="2.576">99%</option></select></label>
+      <label for="mE">Margen de error<select id="mE"><option value="0.05">5%</option><option value="0.1" selected>10%</option><option value="0.15">15%</option></select></label>
+      <label for="mA">Asesores a evaluar<input type="number" id="mA" min="1" step="1" value="13"></label>
+      <label for="mM">Mínimo por asesor<input type="number" id="mM" min="0" step="1" value="3"></label>
+    </div>
+    <p class="msg" id="mRes">Escribe N para calcular la muestra.</p>
+  </section>
+
+  <footer><strong>Calificador Comercial <span class="ver"></span></strong>. Cada persona que abre esta página usa su propia cuenta de Claude para calificar. La calificación es una propuesta: el analista la revisa y la registra en el formato PV-FR-62.</footer>
+</div>
+
+<script>
+const VERSION="versión 1 · 18-oct-2026";
+const CRIT=[{"code": "HD-1", "dim": "M1 · Control Habeas Data", "desc": "Realiza las preguntas de seguridad (filtro de titularidad) ANTES de dar cualquier información del crédito, la obligación, el saldo o el recibo de pago.", "tipo": "Control HD", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": true, "hub": false, "prop": {"whatsapp": "wa_hd_preguntas_seguridad_antes_de_informar", "llamada": "ll_hd_preguntas_seguridad_antes_de_informar", "correo": "co_hd_preguntas_seguridad_antes_de_informar", "presencial": "pr_hd_preguntas_seguridad_antes_de_informar"}, "fuente": "PV-IN-04 4.7"}, {"code": "HD-2", "dim": "M1 · Control Habeas Data", "desc": "Hace las preguntas de seguridad COMPLETAS, según el protocolo vigente (no omite ni resume preguntas).", "tipo": "Control HD", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": true, "hub": false, "prop": {"whatsapp": "wa_hd_preguntas_seguridad_completas", "llamada": "ll_hd_preguntas_seguridad_completas", "correo": "co_hd_preguntas_seguridad_completas", "presencial": "pr_hd_preguntas_seguridad_completas"}, "fuente": "PV-IN-04 4.7"}, {"code": "HD-3", "dim": "M1 · Control Habeas Data", "desc": "No entrega información a terceros no autorizados (familiares, codeudores, referencias, IES sin autorización).", "tipo": "Control HD", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": true, "hub": false, "prop": {"whatsapp": "wa_hd_no_informa_a_terceros_no_autorizados", "llamada": "ll_hd_no_informa_a_terceros_no_autorizados", "correo": "co_hd_no_informa_a_terceros_no_autorizados", "presencial": "pr_hd_no_informa_a_terceros_no_autorizados"}, "fuente": "PV-IN-04 4.7 · Ley 1581 de 2012"}, {"code": "HD-4", "dim": "M1 · Control Habeas Data", "desc": "Protege los datos: no expone datos completos del titular en el canal y no pide ni envía documentos por canales no oficiales.", "tipo": "Control HD", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_hd_protege_datos_y_usa_canales_oficiales", "llamada": "ll_hd_protege_datos_y_usa_canales_oficiales", "correo": "co_hd_protege_datos_y_usa_canales_oficiales", "presencial": "pr_hd_protege_datos_y_usa_canales_oficiales"}, "fuente": "Ley 1581 de 2012"}, {"code": "HD-5", "dim": "M1 · Control Habeas Data", "desc": "Respeta la autorización de tratamiento de datos y contacta solo por los canales que el asociado autorizó.", "tipo": "Control HD", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_hd_respeta_autorizacion_de_contacto", "llamada": "ll_hd_respeta_autorizacion_de_contacto", "correo": "co_hd_respeta_autorizacion_de_contacto", "presencial": "pr_hd_respeta_autorizacion_de_contacto"}, "fuente": "Ley 1581 de 2012 · Ley 2300 de 2023"}, {"code": "ECU-1", "dim": "2. Asesoría comercial", "desc": "Da información correcta y completa (requisitos, documentos, condiciones, estado del crédito o de la obligación).", "tipo": "ECU", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_ecu_informacion_correcta_y_completa", "llamada": "ll_ecu_informacion_correcta_y_completa", "correo": "co_ecu_informacion_correcta_y_completa", "presencial": "pr_ecu_informacion_correcta_y_completa"}, "fuente": "PV-PR-09 6.3"}, {"code": "ECU-2", "dim": "5. Experiencia del asociado", "desc": "Trata al asociado con respeto (sin maltrato ni trato inadecuado).", "tipo": "ECU", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": true, "hub": false, "prop": {"whatsapp": "wa_ecu_trato_respetuoso", "llamada": "ll_ecu_trato_respetuoso", "correo": "co_ecu_trato_respetuoso", "presencial": "pr_ecu_trato_respetuoso"}, "fuente": "PV-IN-04 4.8"}, {"code": "ECU-3", "dim": "4. Registro y seguimiento", "desc": "Da respuesta y cierre a toda solicitud o compromiso con el asociado (no abandona el caso ni deja sin respuesta un mensaje).", "tipo": "ECU", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_ecu_da_respuesta_y_cierre_a_solicitudes", "llamada": "ll_ecu_da_respuesta_y_cierre_a_solicitudes", "correo": "co_ecu_da_respuesta_y_cierre_a_solicitudes", "presencial": "pr_ecu_da_respuesta_y_cierre_a_solicitudes"}, "fuente": "PV-PR-09 6.2"}, {"code": "ECN-1", "dim": "1. Contacto oportuno", "desc": "Realiza el primer contacto con el lead dentro del SLA (3 h hábiles desde la asignación).", "tipo": "ECN", "canal": "Todos", "ap": [1, 0, 0], "w": [0, 0, 0], "recv": "", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_ecn_primer_contacto_dentro_de_sla", "llamada": "ll_ecn_primer_contacto_dentro_de_sla", "correo": "co_ecn_primer_contacto_dentro_de_sla", "presencial": "pr_ecn_primer_contacto_dentro_de_sla"}, "fuente": "PV-PR-09 4 y 6.3"}, {"code": "ECN-2", "dim": "1. Contacto oportuno", "desc": "Descalifica el lead solo con los intentos registrados y el motivo que corresponde.", "tipo": "ECN", "canal": "Todos", "ap": [1, 0, 0], "w": [0, 0, 0], "recv": "", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_ecn_descalifica_con_intentos_y_motivo", "llamada": "ll_ecn_descalifica_con_intentos_y_motivo", "correo": "co_ecn_descalifica_con_intentos_y_motivo", "presencial": "pr_ecn_descalifica_con_intentos_y_motivo"}, "fuente": "PV-PR-09 6.3"}, {"code": "ECN-3", "dim": "3. Avance con evidencia", "desc": "Crea o asocia el negocio cuando la persona decide continuar.", "tipo": "ECN", "canal": "Todos", "ap": [1, 0, 0], "w": [0, 0, 0], "recv": "", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_ecn_crea_o_asocia_negocio", "llamada": "ll_ecn_crea_o_asocia_negocio", "correo": "co_ecn_crea_o_asocia_negocio", "presencial": "pr_ecn_crea_o_asocia_negocio"}, "fuente": "PV-PR-09 6.3"}, {"code": "ECN-4", "dim": "3. Avance con evidencia", "desc": "Mueve las etapas solo con evidencia (Desembolsado con fecha y referencia).", "tipo": "ECN", "canal": "Todos", "ap": [1, 0, 0], "w": [0, 0, 0], "recv": "", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_ecn_mueve_etapas_con_evidencia", "llamada": "ll_ecn_mueve_etapas_con_evidencia", "correo": "co_ecn_mueve_etapas_con_evidencia", "presencial": "pr_ecn_mueve_etapas_con_evidencia"}, "fuente": "PV-PR-09 6.4"}, {"code": "ECN-5", "dim": "4. Registro y seguimiento", "desc": "Deja el caso con estado real, próxima acción, responsable y fecha.", "tipo": "ECN", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_ecn_deja_estado_proxima_accion_responsable_fecha", "llamada": "ll_ecn_deja_estado_proxima_accion_responsable_fecha", "correo": "co_ecn_deja_estado_proxima_accion_responsable_fecha", "presencial": "pr_ecn_deja_estado_proxima_accion_responsable_fecha"}, "fuente": "PV-PR-09 6.1"}, {"code": "ECC-1", "dim": "2. Asesoría comercial", "desc": "No promete aprobación, tasa, costo, monto, descuento ni condiciones de pago no autorizados.", "tipo": "ECC", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_ecc_no_promete_condiciones_no_autorizadas", "llamada": "ll_ecc_no_promete_condiciones_no_autorizadas", "correo": "co_ecc_no_promete_condiciones_no_autorizadas", "presencial": "pr_ecc_no_promete_condiciones_no_autorizadas"}, "fuente": "Política comercial y de cartera"}, {"code": "ECC-2", "dim": "3. Avance con evidencia", "desc": "No altera ni manipula documentos.", "tipo": "ECC", "canal": "Todos", "ap": [1, 1, 1], "w": [0, 0, 0], "recv": "", "na": true, "alerta": true, "hub": false, "prop": {"whatsapp": "wa_ecc_no_altera_documentos", "llamada": "ll_ecc_no_altera_documentos", "correo": "co_ecc_no_altera_documentos", "presencial": "pr_ecc_no_altera_documentos"}, "fuente": "PV-IN-04 4.8"}, {"code": "ECC-3", "dim": "7. Gestión de cobranza", "desc": "Cobra con respeto y dentro de la ley: sin intimidar ni presionar, sin informar la deuda a terceros o referencias, y en los horarios y canales permitidos.", "tipo": "ECC", "canal": "Todos", "ap": [0, 1, 1], "w": [0, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_ecc_cobra_con_respeto_y_dentro_de_la_ley", "llamada": "ll_ecc_cobra_con_respeto_y_dentro_de_la_ley", "correo": "co_ecc_cobra_con_respeto_y_dentro_de_la_ley", "presencial": "pr_ecc_cobra_con_respeto_y_dentro_de_la_ley"}, "fuente": "Ley 2300 de 2023 y Ley 1266 de 2008"}, {"code": "P1-1", "dim": "1. Contacto oportuno", "desc": "Sigue la cadencia de 48 h por varios canales (WhatsApp, llamada en franja, último intento con correo y secuencia).", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [6, 0, 0], "recv": "P1-2", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_sigue_cadencia_48h_multicanal", "llamada": "ll_sigue_cadencia_48h_multicanal", "correo": "co_sigue_cadencia_48h_multicanal", "presencial": "pr_sigue_cadencia_48h_multicanal"}, "fuente": "PV-PR-09 6.3"}, {"code": "P1-2", "dim": "1. Contacto oportuno", "desc": "Responde a tiempo en una conversación activa.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [3, 0, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_responde_a_tiempo_en_conversacion_activa", "llamada": "ll_responde_a_tiempo_en_conversacion_activa", "correo": "co_responde_a_tiempo_en_conversacion_activa", "presencial": "pr_responde_a_tiempo_en_conversacion_activa"}, "fuente": "AS-040"}, {"code": "P2-1", "dim": "2. Asesoría comercial", "desc": "Revisa duplicados e historial antes de gestionar.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [2, 0, 0], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_revisa_duplicados_e_historial", "llamada": "ll_revisa_duplicados_e_historial", "correo": "co_revisa_duplicados_e_historial", "presencial": "pr_revisa_duplicados_e_historial"}, "fuente": "PV-IN-08"}, {"code": "P2-2", "dim": "2. Asesoría comercial", "desc": "Perfila el caso: tipo, línea, ciudad, sede y canal; en educativo, universidad y modalidad.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [3, 0, 0], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_perfila_el_caso", "llamada": "ll_perfila_el_caso", "correo": "co_perfila_el_caso", "presencial": "pr_perfila_el_caso"}, "fuente": "PV-IN-08"}, {"code": "P2-3", "dim": "2. Asesoría comercial", "desc": "Indaga qué quiere financiar, por qué monto y para cuándo.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [4, 0, 0], "recv": "P2-2", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_indaga_que_monto_y_cuando_financiar", "llamada": "ll_indaga_que_monto_y_cuando_financiar", "correo": "co_indaga_que_monto_y_cuando_financiar", "presencial": "pr_indaga_que_monto_y_cuando_financiar"}, "fuente": "PV-PR-09 6.3"}, {"code": "P2-4", "dim": "2. Asesoría comercial", "desc": "Resuelve dudas y objeciones sin presionar.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [4, 0, 0], "recv": "P2-2", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_resuelve_dudas_y_objeciones_sin_presionar", "llamada": "ll_resuelve_dudas_y_objeciones_sin_presionar", "correo": "co_resuelve_dudas_y_objeciones_sin_presionar", "presencial": "pr_resuelve_dudas_y_objeciones_sin_presionar"}, "fuente": "AS-026"}, {"code": "P2-5", "dim": "2. Asesoría comercial", "desc": "Ofrece un valor adicional o una alternativa permitida cuando corresponde.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [2, 0, 0], "recv": "P2-2", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_ofrece_valor_adicional_o_alternativa", "llamada": "ll_ofrece_valor_adicional_o_alternativa", "correo": "co_ofrece_valor_adicional_o_alternativa", "presencial": "pr_ofrece_valor_adicional_o_alternativa"}, "fuente": "PV-PR-09"}, {"code": "P3-1", "dim": "3. Avance con evidencia", "desc": "Cada documento o pendiente tiene tarea, responsable y fecha.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [4, 0, 0], "recv": "P4-3", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_pendientes_con_tarea_responsable_y_fecha", "llamada": "ll_pendientes_con_tarea_responsable_y_fecha", "correo": "co_pendientes_con_tarea_responsable_y_fecha", "presencial": "pr_pendientes_con_tarea_responsable_y_fecha"}, "fuente": "PV-IN-09"}, {"code": "P3-2", "dim": "3. Avance con evidencia", "desc": "En estudio escala a las 48 h y gestiona el negocio Congelado en 48 h o menos.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [4, 0, 0], "recv": "P4-3", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_escala_estudio_y_gestiona_congelado_48h", "llamada": "ll_escala_estudio_y_gestiona_congelado_48h", "correo": "co_escala_estudio_y_gestiona_congelado_48h", "presencial": "pr_escala_estudio_y_gestiona_congelado_48h"}, "fuente": "PV-IN-09"}, {"code": "P3-3", "dim": "3. Avance con evidencia", "desc": "En Aprobado confirma condiciones y aceptación del asociado, y hace seguimiento al desembolso.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [4, 0, 0], "recv": "P4-3", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_aprobado_confirma_condiciones_y_sigue_desembolso", "llamada": "ll_aprobado_confirma_condiciones_y_sigue_desembolso", "correo": "co_aprobado_confirma_condiciones_y_sigue_desembolso", "presencial": "pr_aprobado_confirma_condiciones_y_sigue_desembolso"}, "fuente": "PV-IN-09"}, {"code": "P3-4", "dim": "3. Avance con evidencia", "desc": "Usa el motivo correcto al descalificar un lead o descartar un negocio.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [2, 0, 0], "recv": "P4-3", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_usa_motivo_correcto_al_descalificar", "llamada": "ll_usa_motivo_correcto_al_descalificar", "correo": "co_usa_motivo_correcto_al_descalificar", "presencial": "pr_usa_motivo_correcto_al_descalificar"}, "fuente": "PV-IN-08 / PV-IN-09"}, {"code": "P3-5", "dim": "3. Avance con evidencia", "desc": "En postventa informa fecha y medios de pago y canales oficiales, y registra novedades en ticket.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 0, 0], "w": [2, 0, 0], "recv": "P4-3", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_postventa_informa_pagos_y_registra_ticket", "llamada": "ll_postventa_informa_pagos_y_registra_ticket", "correo": "co_postventa_informa_pagos_y_registra_ticket", "presencial": "pr_postventa_informa_pagos_y_registra_ticket"}, "fuente": "PV-IN-05"}, {"code": "CB-1", "dim": "7. Gestión de cobranza", "desc": "Da información correcta, completa y vigente de la obligación: valor a pagar, fecha límite, referencia o recibo y medios de pago oficiales.", "tipo": "No crítico", "canal": "Todos", "ap": [0, 1, 1], "w": [0, 10, 10], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_informa_obligacion_correcta_y_vigente", "llamada": "ll_informa_obligacion_correcta_y_vigente", "correo": "co_informa_obligacion_correcta_y_vigente", "presencial": "pr_informa_obligacion_correcta_y_vigente"}, "fuente": "Política de cartera"}, {"code": "CB-2", "dim": "7. Gestión de cobranza", "desc": "Ofrece de inmediato alternativas de pago autorizadas según la situación del asociado (fecha de compromiso, acuerdo, normalización si aplica).", "tipo": "No crítico", "canal": "Todos", "ap": [0, 1, 1], "w": [0, 8, 8], "recv": "CB-1", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_ofrece_alternativas_de_pago_autorizadas", "llamada": "ll_ofrece_alternativas_de_pago_autorizadas", "correo": "co_ofrece_alternativas_de_pago_autorizadas", "presencial": "pr_ofrece_alternativas_de_pago_autorizadas"}, "fuente": "Política de cartera"}, {"code": "CB-3", "dim": "7. Gestión de cobranza", "desc": "Registra el resultado en HubSpot: compromiso de pago (valor y fecha), novedad o motivo de no pago.", "tipo": "No crítico", "canal": "Todos", "ap": [0, 1, 1], "w": [0, 6, 6], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_registra_resultado_cobranza_en_hubspot", "llamada": "ll_registra_resultado_cobranza_en_hubspot", "correo": "co_registra_resultado_cobranza_en_hubspot", "presencial": "pr_registra_resultado_cobranza_en_hubspot"}, "fuente": "PV-PR-09 8"}, {"code": "CB-4", "dim": "7. Gestión de cobranza", "desc": "Deja tarea de seguimiento al compromiso de pago con fecha.", "tipo": "No crítico", "canal": "Todos", "ap": [0, 1, 1], "w": [0, 4, 4], "recv": "CB-3", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_deja_tarea_seguimiento_compromiso_pago", "llamada": "ll_deja_tarea_seguimiento_compromiso_pago", "correo": "co_deja_tarea_seguimiento_compromiso_pago", "presencial": "pr_deja_tarea_seguimiento_compromiso_pago"}, "fuente": "PV-PR-09 6.1"}, {"code": "CB-5", "dim": "7. Gestión de cobranza", "desc": "Consulta del asociado: responde de forma oportuna, dentro del tiempo de respuesta del canal.", "tipo": "No crítico", "canal": "Todos", "ap": [0, 1, 0], "w": [0, 6, 0], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_consulta_responde_oportunamente", "llamada": "ll_consulta_responde_oportunamente", "correo": "co_consulta_responde_oportunamente", "presencial": "pr_consulta_responde_oportunamente"}, "fuente": "AS-040"}, {"code": "CB-6", "dim": "7. Gestión de cobranza", "desc": "Consulta del asociado: confirma que entendió y le indica cómo descargar o consultar su recibo en los canales digitales.", "tipo": "No crítico", "canal": "Todos", "ap": [0, 1, 0], "w": [0, 6, 0], "recv": "CB-5", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_consulta_confirma_entendimiento_y_recibo_digital", "llamada": "ll_consulta_confirma_entendimiento_y_recibo_digital", "correo": "co_consulta_confirma_entendimiento_y_recibo_digital", "presencial": "pr_consulta_confirma_entendimiento_y_recibo_digital"}, "fuente": "PV-FR-59 (valor)"}, {"code": "CC-1", "dim": "7. Gestión de cobranza", "desc": "Campaña: responde la réplica del asociado a la plantilla masiva de cobranza de forma oportuna (tiempo definido por la coordinación).", "tipo": "No crítico", "canal": "Todos", "ap": [0, 0, 1], "w": [0, 0, 6], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_campana_responde_replica_oportunamente", "llamada": "ll_campana_responde_replica_oportunamente", "correo": "co_campana_responde_replica_oportunamente", "presencial": "pr_campana_responde_replica_oportunamente"}, "fuente": "Workflow de cobranza WhatsApp"}, {"code": "CC-2", "dim": "7. Gestión de cobranza", "desc": "Campaña: retoma el motivo del mensaje enviado, se identifica y explica por qué se le contactó, sin presionar.", "tipo": "No crítico", "canal": "Todos", "ap": [0, 0, 1], "w": [0, 0, 6], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_campana_retoma_motivo_y_se_identifica", "llamada": "ll_campana_retoma_motivo_y_se_identifica", "correo": "co_campana_retoma_motivo_y_se_identifica", "presencial": "pr_campana_retoma_motivo_y_se_identifica"}, "fuente": "Ley 2300 de 2023"}, {"code": "P4-1", "dim": "4. Registro y seguimiento", "desc": "Registra cada contacto como actividad del tipo correcto, con fecha y hora reales.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [6, 6, 6], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_registra_contacto_como_actividad_correcta", "llamada": "ll_registra_contacto_como_actividad_correcta", "correo": "co_registra_contacto_como_actividad_correcta", "presencial": "pr_registra_contacto_como_actividad_correcta"}, "fuente": "PV-IN-10"}, {"code": "P4-2", "dim": "4. Registro y seguimiento", "desc": "La actividad queda en el objeto correcto (lead, negocio o ticket) y asociada al contacto.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [5, 5, 5], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_actividad_en_objeto_correcto_y_asociada", "llamada": "ll_actividad_en_objeto_correcto_y_asociada", "correo": "co_actividad_en_objeto_correcto_y_asociada", "presencial": "pr_actividad_en_objeto_correcto_y_asociada"}, "fuente": "PV-IN-08"}, {"code": "P4-3", "dim": "4. Registro y seguimiento", "desc": "Las notas dicen qué pasó, qué falta, quién lo hace y cuándo.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [9, 9, 9], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_notas_dicen_que_paso_que_falta_quien_cuando", "llamada": "ll_notas_dicen_que_paso_que_falta_quien_cuando", "correo": "co_notas_dicen_que_paso_que_falta_quien_cuando", "presencial": "pr_notas_dicen_que_paso_que_falta_quien_cuando"}, "fuente": "PV-PR-09 8"}, {"code": "P4-4", "dim": "4. Registro y seguimiento", "desc": "No pide de nuevo lo ya entregado y deja resumen si transfiere el caso.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [5, 5, 5], "recv": "P4-3", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_no_pide_de_nuevo_y_resume_al_transferir", "llamada": "ll_no_pide_de_nuevo_y_resume_al_transferir", "correo": "co_no_pide_de_nuevo_y_resume_al_transferir", "presencial": "pr_no_pide_de_nuevo_y_resume_al_transferir"}, "fuente": "AS-026"}, {"code": "P4-5", "dim": "4. Registro y seguimiento", "desc": "Registra correctamente los datos en HubSpot (documento, ID, radicado, correo, teléfono), sin errores.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [3, 3, 3], "recv": "P4-2", "na": true, "alerta": false, "hub": true, "prop": {"whatsapp": "wa_registra_datos_correctos_en_hubspot", "llamada": "ll_registra_datos_correctos_en_hubspot", "correo": "co_registra_datos_correctos_en_hubspot", "presencial": "pr_registra_datos_correctos_en_hubspot"}, "fuente": "PV-FR-59"}, {"code": "P5-1", "dim": "5. Experiencia del asociado", "desc": "Es cordial y claro, y transmite confianza y empatía.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [8, 8, 8], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_cordial_claro_transmite_confianza_empatia", "llamada": "ll_cordial_claro_transmite_confianza_empatia", "correo": "co_cordial_claro_transmite_confianza_empatia", "presencial": "pr_cordial_claro_transmite_confianza_empatia"}, "fuente": "AS-026"}, {"code": "P5-2", "dim": "5. Experiencia del asociado", "desc": "Escucha sin interrumpir y no discute.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [6, 6, 6], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_escucha_sin_interrumpir_no_discute", "llamada": "ll_escucha_sin_interrumpir_no_discute", "correo": "co_escucha_sin_interrumpir_no_discute", "presencial": "pr_escucha_sin_interrumpir_no_discute"}, "fuente": "AS-026"}, {"code": "P5-3", "dim": "5. Experiencia del asociado", "desc": "Cierra con un compromiso y el próximo paso acordado.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [9, 9, 9], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_cierra_con_compromiso_y_proximo_paso", "llamada": "ll_cierra_con_compromiso_y_proximo_paso", "correo": "co_cierra_con_compromiso_y_proximo_paso", "presencial": "pr_cierra_con_compromiso_y_proximo_paso"}, "fuente": "AS-026"}, {"code": "P5-4", "dim": "5. Experiencia del asociado", "desc": "Usa bien el tiempo de la interacción.", "tipo": "No crítico", "canal": "Todos", "ap": [1, 1, 1], "w": [5, 5, 5], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_usa_bien_el_tiempo", "llamada": "ll_usa_bien_el_tiempo", "correo": "co_usa_bien_el_tiempo", "presencial": "pr_usa_bien_el_tiempo"}, "fuente": "AS-026"}, {"code": "WA-1", "dim": "5. Canal WhatsApp", "desc": "Adapta las plantillas al caso (no las envía sin ajustar) y escribe con buena redacción y ortografía.", "tipo": "No crítico", "canal": "WhatsApp", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_adapta_plantillas_y_buena_redaccion"}, "fuente": "AS-040"}, {"code": "WA-3", "dim": "5. Canal WhatsApp", "desc": "Crea el contacto en el CRM si no existe y asocia la cuenta del asociado (PV-IN-02).", "tipo": "No crítico", "canal": "WhatsApp", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_crea_o_asocia_contacto_en_crm"}, "fuente": "Proceso WhatsApp sedes comerciales 9-11"}, {"code": "WA-4", "dim": "5. Canal WhatsApp", "desc": "Solicita los documentos de cada línea según el perfilamiento realizado.", "tipo": "No crítico", "canal": "WhatsApp", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "WA-1", "na": true, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_solicita_documentos_segun_perfilamiento"}, "fuente": "Proceso WhatsApp sedes comerciales 15.4"}, {"code": "WA-5", "dim": "5. Canal WhatsApp", "desc": "Envía la encuesta de satisfacción y cierra la conversación.", "tipo": "No crítico", "canal": "WhatsApp", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"whatsapp": "wa_envia_encuesta_y_cierra_conversacion"}, "fuente": "Proceso WhatsApp sedes comerciales 15.6 y 16"}, {"code": "LL-1", "dim": "5. Canal Llamada", "desc": "Se presenta al abrir la llamada.", "tipo": "No crítico", "canal": "Llamada", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"llamada": "ll_se_presenta_al_abrir"}, "fuente": "AS-026"}, {"code": "LL-2", "dim": "5. Canal Llamada", "desc": "Maneja bien la espera (informa y retoma).", "tipo": "No crítico", "canal": "Llamada", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "LL-3", "na": true, "alerta": false, "hub": false, "prop": {"llamada": "ll_maneja_bien_la_espera"}, "fuente": "AS-026"}, {"code": "LL-3", "dim": "5. Canal Llamada", "desc": "Resume los acuerdos al cerrar.", "tipo": "No crítico", "canal": "Llamada", "ap": [1, 1, 1], "w": [2, 2, 2], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"llamada": "ll_resume_acuerdos_al_cerrar"}, "fuente": "AS-026"}, {"code": "CO-1", "dim": "5. Canal Correo", "desc": "Usa un asunto claro.", "tipo": "No crítico", "canal": "Correo", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"correo": "co_usa_asunto_claro"}, "fuente": "AS-039"}, {"code": "CO-2", "dim": "5. Canal Correo", "desc": "Incluye saludo y firma actualizada.", "tipo": "No crítico", "canal": "Correo", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"correo": "co_incluye_saludo_y_firma_actualizada"}, "fuente": "AS-039"}, {"code": "CO-3", "dim": "5. Canal Correo", "desc": "Dice qué solicita y para cuándo.", "tipo": "No crítico", "canal": "Correo", "ap": [1, 1, 1], "w": [2, 2, 2], "recv": "", "na": false, "alerta": false, "hub": false, "prop": {"correo": "co_dice_que_solicita_y_para_cuando"}, "fuente": "AS-039"}, {"code": "PR-1", "dim": "5. Canal Presencial", "desc": "Orienta al asociado en la sede.", "tipo": "No crítico", "canal": "Presencial", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "PR-3", "na": true, "alerta": false, "hub": false, "prop": {"presencial": "pr_orienta_al_asociado_en_sede"}, "fuente": "AS-026"}, {"code": "PR-2", "dim": "5. Canal Presencial", "desc": "Revisa los documentos en el momento.", "tipo": "No crítico", "canal": "Presencial", "ap": [1, 1, 1], "w": [1, 1, 1], "recv": "PR-3", "na": true, "alerta": false, "hub": false, "prop": {"presencial": "pr_revisa_documentos_en_el_momento"}, "fuente": "PV-IN-09"}, {"code": "PR-3", "dim": "5. Canal Presencial", "desc": "Registra la reunión en HubSpot.", "tipo": "No crítico", "canal": "Presencial", "ap": [1, 1, 1], "w": [2, 2, 2], "recv": "", "na": false, "alerta": false, "hub": true, "prop": {"presencial": "pr_registra_reunion_en_hubspot"}, "fuente": "PV-IN-10"}];
+const CANALES={
+ whatsapp:{nombre:"WhatsApp",tag:"WhatsApp",unidad:"conversación",label:"Transcripción de la conversación",help:"Copia el chat completo desde HubSpot, del saludo al cierre. Los datos personales se enmascaran en el resultado."},
+ correo:{nombre:"Correo",tag:"Correo",unidad:"correo",label:"Hilo del correo",help:"Pega el hilo completo, con las fechas y horas de cada mensaje. Se califica la respuesta final del asesor; el resto sirve de contexto."},
+ llamada:{nombre:"Llamada",tag:"Llamada",unidad:"llamada",label:"Transcripción de la llamada",help:"Pega la transcripción completa, del saludo a la despedida. Si tienes notas de la escucha (tono, esperas), agrégalas al final."},
+ presencial:{nombre:"Presencial",tag:"Presencial",unidad:"atención",label:"Notas de la atención presencial",help:"Describe lo que pasó en la sede: qué pidió el asociado, qué respondió el asesor, qué documentos se revisaron y cómo terminó."}
+};
+const GEST=["Comercial","Cobranza - consulta","Cobranza - campaña"];
+const LABEL={"":"—",Si:"Sí",No:"No",NA:"N/A",NE:"Revisión del analista"};
+const $=id=>document.getElementById(id);
+const fmt=x=>(Math.round(x*10)/10).toString().replace(".",",");
+const nivelDe=p=>p>=92?"Óptimo":p>=80?"En alerta":p>=70?"Básico":"Crítico";
+const ACCION={"Crítico":"Llamado de atención, proceso disciplinario y plan de trabajo","Básico":"Requiere retroalimentación","En alerta":"Requiere compromisos","Óptimo":"No requiere compromisos"};
+const MINIMO=85;
+let canal="whatsapp",gi=0,C=[],state=[],extra=null;
+const blank=()=>({cal:"",conducta:"",evidencia:"",mejora:"",razon:"",orig:"",obsA:""});
+const changed=i=>!!state[i].orig&&state[i].cal!==state[i].orig;
+const hubOn=()=>($("hub").value||"").trim().length>0;
+document.querySelectorAll(".ver").forEach(e=>e.textContent=VERSION);
+
+function setup(){
+  C=CRIT.filter(c=>(c.canal==="Todos"||c.canal===CANALES[canal].tag)&&c.ap[gi]).map(c=>Object.assign({},c,{w:c.w[gi],crit:c.tipo!=="No crítico",kind:c.tipo==="Control HD"?"HD":c.tipo,p:c.prop[canal]||""}));
+  state=C.map(blank);extra=null;
+}
+
+/* ---------- Cálculo ---------- */
+function compute(){
+  const eff=C.map(c=>c.w),idx={};C.forEach((c,i)=>idx[c.code]=i);
+  C.forEach((c,i)=>{if(state[i].cal==="NA"&&c.recv&&idx[c.recv]!==undefined){const j=idx[c.recv];if(state[j].cal!=="NA")eff[j]+=c.w;}});
+  let score=0,ne=0,blankN=0;const revisar=[],err={HD:[],ECU:[],ECN:[],ECC:[]},pend={HD:0,ECU:0,ECN:0,ECC:0},alert=[],got=[];
+  C.forEach((c,i)=>{
+    const s=state[i].cal;
+    if(s==="NA"&&!c.na)revisar.push(c.code);
+    if(c.crit){
+      if(s==="No"){err[c.kind].push(c.code);if(c.alerta)alert.push(c.code);}
+      if(s==="NE"||s==="")pend[c.kind]++;
+      got.push(s==="No"?"Error":s==="Si"?"Sin error":s==="NA"?"N/A":s==="NE"?"?":"");
+    }else{
+      let g=0;if(s==="Si"){g=eff[i];score+=g;}
+      if(s==="NE")ne+=eff[i];
+      if(s==="")blankN++;
+      got.push(s==="NA"?(c.recv?"→ "+c.recv:"0"):s==="NE"?"? / "+eff[i]:s==="Si"?g+" / "+eff[i]:s==="No"?"0 / "+eff[i]:"");
+    }
+  });
+  return {score,ne,blank:blankN,revisar,err,pend,alert,got,eff,fail:err.HD.length>0};
+}
+
+function secRow(tb,txt,sub){const tr=document.createElement("tr");tr.className="sec";const td=document.createElement("td");td.colSpan=9;td.textContent=txt;if(sub){const s=document.createElement("small");s.textContent=sub;td.append(s);}tr.append(td);tb.append(tr);}
+
+function buildRows(){
+  const tb=$("rows");tb.textContent="";let last="";
+  C.forEach((c,i)=>{
+    const key=c.kind==="HD"?"HD":c.crit?"ERR":c.dim;
+    if(key!==last){last=key;
+      if(key==="HD")secRow(tb,"Fase I · Control Habeas Data","Si algún ítem es No, el monitoreo queda reprobado y se reporta a la Dirección Comercial.");
+      else if(key==="ERR")secRow(tb,"Errores críticos · ECU, ECN y ECC","Se miden como porcentaje de casos sin error. No restan puntos.");
+      else secRow(tb,c.dim);}
+    const tr=document.createElement("tr");
+    const cell=(cls,txt)=>{const td=document.createElement("td");if(cls)td.className=cls;if(txt!=null)td.textContent=txt;tr.append(td);return td;};
+    cell("n",c.code);
+    const ct=cell("crit",c.desc);
+    const rule=document.createElement("span");rule.className="na-rule";rule.textContent=c.recv?("Si es N/A pasa al "+c.recv):c.na?"Admite N/A sin trasladar peso":"No admite N/A";ct.append(rule);
+    if(c.hub){const a=document.createElement("span");a.className="analista";a.textContent="HubSpot: lo selecciona el analista salvo que pegues el registro";ct.append(a);}
+    if(c.p){const pr=document.createElement("code");pr.className="prop";pr.textContent=c.p;ct.append(pr);}
+    const why=document.createElement("details");why.className="why";why.innerHTML="<summary>¿Por qué?</summary><div></div>";why.querySelector("div").id="why-"+c.code;ct.append(why);
+    cell("w",c.crit?"Crítico":c.w);
+    const sc=cell("");const sel=document.createElement("select");sel.id="cal-"+c.code;sel.setAttribute("aria-label","Calificación "+c.code);
+    ["","Si","No","NA","NE"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=LABEL[v];sel.append(o);});
+    sel.addEventListener("change",()=>{state[i].cal=sel.value;recalc();});
+    const flag=document.createElement("span");flag.className="flag";flag.id="flag-"+c.code;flag.hidden=true;flag.textContent="REVISAR: no admite N/A";
+    const orig=document.createElement("span");orig.className="orig";orig.id="orig-"+c.code;orig.hidden=true;
+    const oa=document.createElement("textarea");oa.className="obsA";oa.id="obsA-"+c.code;oa.placeholder="Observación (obligatoria si cambias la calificación)";oa.setAttribute("aria-label","Observación del analista, "+c.code);
+    oa.addEventListener("input",()=>{state[i].obsA=oa.value;recalc();});
+    sc.append(sel,document.createElement("br"),flag,orig);
+    cell("w").id="got-"+c.code;cell("").id="con-"+c.code;cell("ev").id="ev-"+c.code;cell("").id="mej-"+c.code;cell("").append(oa);
+    tb.append(tr);
+  });
+}
+
+function pill(txt,cls){const s=document.createElement("span");s.className="pill "+cls;s.textContent=txt;return s;}
+
+function recalc(){
+  const r=compute();
+  C.forEach((c,i)=>{const sel=$("cal-"+c.code);sel.value=state[i].cal;sel.className=state[i].cal;$("got-"+c.code).textContent=r.got[i];$("flag-"+c.code).hidden=!r.revisar.includes(c.code);
+    const ch=changed(i),oa=$("obsA-"+c.code),og=$("orig-"+c.code);og.hidden=!ch;if(ch)og.textContent="Claude propuso: "+LABEL[state[i].orig];if(oa.value!==state[i].obsA)oa.value=state[i].obsA;oa.classList.toggle("req",ch&&!state[i].obsA.trim());
+    $("con-"+c.code).textContent=state[i].conducta;$("ev-"+c.code).textContent=state[i].evidencia;$("mej-"+c.code).textContent=(state[i].cal==="No"||(c.crit&&state[i].cal==="No"))?state[i].mejora:"";renderWhy(i);});
+  const any=state.some(s=>s.cal);
+  const pend=C.filter((c,i)=>changed(i)&&!state[i].obsA.trim()).map(c=>c.code);
+  $("totGot").textContent=any?(r.fail?"0":fmt(r.score))+" / 100":"—";
+  $("totNote").textContent=!any?"":(r.ne?"Pendiente: "+fmt(r.ne)+" puntos en revisión del analista. ":"")+(pend.length?"Falta la observación del cambio en "+pend.join(", ")+".":"");
+  // Resumen
+  const sFase=$("sFase"),sCrit=$("sCrit");
+  sFase.textContent="—";$("sFaseSub").textContent="HD-1 a HD-5";sCrit.textContent="—";$("sNivel").textContent="—";$("sNivelSub").textContent="Aprueba con "+MINIMO+"% o más";$("alerta").hidden=true;
+  if(!any){$("sScore").textContent="—";$("sScoreSub").textContent="Sin calificar";renderNaList();return r;}
+  const hdN=C.filter(c=>c.kind==="HD").length,hdPend=r.pend.HD;
+  const fase=r.fail?"Reprobada":hdPend?"Pendiente":"Aprobada";
+  sFase.textContent=fase;$("sFaseSub").textContent=r.fail?"Falló "+r.err.HD.join(", "):hdPend?hdPend+" ítem(s) por calificar":hdN+" ítems cumplidos";
+  sCrit.textContent="";
+  [["ECU","Usuario"],["ECN","Negocio"],["ECC","Cumplimiento"]].forEach(([k,n])=>{
+    const tot=C.filter(c=>c.kind===k).length;if(!tot)return;const p=document.createElement("div");
+    const e=r.err[k].length;p.append(pill(k+" · "+n,"")," ",pill(e?"Con error: "+r.err[k].join(", "):r.pend[k]?"Pendiente":"Sin error",e?"bad":r.pend[k]?"pend":"ok"));sCrit.append(p);});
+  $("alerta").hidden=!r.alert.length;
+  if(r.alert.length){const a=$("alerta");a.hidden=false;a.textContent="Reporte inmediato a la Dirección Comercial, con los soportes de la conversación: "+r.alert.join(", ")+" en No (filtro de seguridad, información a terceros, maltrato o alteración de documentos).";}
+  const neList=C.filter((c,i)=>!c.crit&&state[i].cal==="NE").map(c=>c.code);
+  let estado="",nivel="";
+  if(r.fail){$("sScore").textContent="0 / 100";$("sScoreSub").textContent="Monitoreo reprobado en la Fase I: "+r.err.HD.join(", ")+". Se suspende la revisión y se escala a la Dirección.";nivel="Crítico";estado="Reprobado";}
+  else if(r.revisar.length){$("sScore").textContent="REVISAR";$("sScoreSub").textContent=r.revisar.join(", ")+" no admite N/A";}
+  else if(neList.length){$("sScore").textContent="No calculable";$("sScoreSub").textContent="Rango posible "+fmt(r.score)+" a "+fmt(r.score+r.ne)+" · verificar "+neList.join(", ");}
+  else{$("sScore").textContent=fmt(r.score)+" / 100";const lost=C.filter((c,i)=>!c.crit&&state[i].cal==="No").map(c=>c.code);
+    $("sScoreSub").textContent="Obtuvo "+fmt(r.score)+" de 100 puntos"+(lost.length?" · dejó de obtener "+fmt(100-r.score)+" en "+lost.join(", "):"")+(r.blank?" · "+r.blank+" sin calificar cuentan como 0":"");
+    nivel=nivelDe(r.score);estado=r.score>=MINIMO?"Aprobado":"Plan de acción";}
+  if(nivel){$("sNivel").textContent=nivel+" · "+estado;$("sNivelSub").textContent=ACCION[nivel]+(estado==="Plan de acción"?". El asesor envía plan de acción.":"");}
+  renderNaList();redoHint();
+  return r;
+}
+
+function renderWhy(i){
+  const c=C[i],s=state[i],box=$("why-"+c.code);if(!box)return;box.textContent="";
+  const add=(k,v)=>{if(!v)return;const p=document.createElement("p");const b=document.createElement("strong");b.textContent=k+": ";p.append(b,v);box.append(p);};
+  add("Parámetro aplicado",(RULES[c.code]||"Sí si cumple lo que pide el criterio con evidencia clara; No si falta un elemento importante")+(c.recv?"; N/A si la situación no se dio (su peso pasa al "+c.recv+")":"")+"; «Revisión del analista» si la evidencia no permite verificarlo.");
+  add("Razón de la calificación",s.razon||(s.cal&&!s.orig?"Calificado a mano por el analista.":""));
+  if(changed(i))add("Cambio del analista","Claude propuso "+LABEL[s.orig]+(s.obsA.trim()?". "+s.obsA.trim():". Falta la observación."));
+}
+
+function renderNaList(){
+  const box=$("naList");box.textContent="";
+  const na=C.filter((c,i)=>state[i].cal==="NA"),ne=C.filter((c,i)=>state[i].cal==="NE");
+  const ix=c=>C.indexOf(c);
+  if(na.length){const p=document.createElement("p");p.innerHTML="<strong>En N/A:</strong> ";p.append(na.map(c=>c.code+(c.recv?" (pasa al "+c.recv+")":c.na?"":" (REVISAR)")+(state[ix(c)].evidencia?": "+state[ix(c)].evidencia:"")).join(" · "));box.append(p);}
+  if(ne.length){const p=document.createElement("p");p.innerHTML="<strong>En revisión del analista:</strong> ";p.append(ne.map(c=>c.code+(state[ix(c)].evidencia?": "+state[ix(c)].evidencia:"")).join(" · "));box.append(p);}
+}
+
+/* ---------- Reglas para Claude ---------- */
+const RULES={
+"HD-1":"«Si» si las preguntas de seguridad (filtro de titularidad) se hacen ANTES de dar cualquier información del crédito, la obligación, el saldo o el recibo; «No» si informa antes de validar o no valida; «NA» solo si no se entregó ninguna información del asociado",
+"HD-2":"«Si» si hace las preguntas de seguridad completas del protocolo vigente, sin omitir ni resumir (referencia: al menos 3 preguntas distintas, como fecha de expedición del documento, fecha de nacimiento, dirección, ciudad, número de cuotas del último crédito); «No» si hace menos o se salta preguntas; «NA» si no se entregó información del asociado",
+"HD-3":"«No» si entrega información del asociado a un tercero no autorizado (familiar, codeudor, referencia, institución educativa sin autorización); «Si» si no lo hace",
+"HD-4":"«No» si muestra datos completos del titular en el canal (documento, teléfono, correo completos) o pide o envía documentos por canales no oficiales; «Si» si los protege",
+"HD-5":"«Si» si contacta solo por los canales que el asociado autorizó y respeta su autorización de tratamiento de datos; «No» si insiste por un canal no autorizado o ignora una negativa; «NE» si no hay evidencia de la autorización",
+"ECU-1":"«No» si da información errada o incompleta (requisitos, documentos, condiciones, estado del crédito o de la obligación) que el asociado necesitaba",
+"ECU-2":"«No» si hay maltrato o trato inadecuado: tono despectivo, ironía, reproches, presión indebida o falta de respeto",
+"ECU-3":"«No» si deja una solicitud o compromiso sin respuesta o cierre, o abandona el caso; «Si» si responde y cierra lo pedido",
+"ECN-1":"Compara la fecha de asignación con la del primer contacto: debe ser dentro de 3 horas hábiles. Solo con registro de HubSpot",
+"ECN-2":"«No» si descalifica el lead sin los intentos registrados o con un motivo que no corresponde. Solo con registro de HubSpot",
+"ECN-3":"«No» si la persona decidió continuar y no se creó o asoció el negocio. Solo con registro de HubSpot",
+"ECN-4":"«No» si movió etapas sin evidencia (por ejemplo, Desembolsado sin fecha y referencia). Solo con registro de HubSpot",
+"ECN-5":"«Si» si el caso queda con estado real, próxima acción, responsable y fecha. Solo con registro de HubSpot",
+"ECC-1":"«No» si promete aprobación, tasa, costo, monto, descuento o condiciones de pago que no están autorizados («te lo aprobamos», «te dejamos la tasa en…»)",
+"ECC-2":"«No» si altera o manipula documentos o pide hacerlo; «Si» si no hay indicio",
+"ECC-3":"Cobranza dentro de la ley (Ley 2300 de 2023): «No» si intimida o presiona, informa la deuda a terceros o referencias, o contacta fuera de los horarios o canales permitidos. Si la interacción no trae hora y no hay otra señal, «Si» o «NE» según la evidencia",
+"P1-1":"Cadencia de 48 h por varios canales (WhatsApp, llamada en franja, último intento con correo y secuencia). Solo con registro de HubSpot",
+"P1-2":"«Si» si responde dentro de los tiempos del canal en una conversación activa (referencia: máximo 10 minutos entre un mensaje del usuario y la respuesta); «No» si deja esperas mayores sin avisar",
+"P2-1":"Revisión de duplicados e historial antes de gestionar. Solo con registro de HubSpot",
+"P2-2":"Perfilamiento: tipo, línea, ciudad, sede y canal; en educativo, universidad y modalidad. «Si» si pregunta o confirma esos datos en la interacción o aparecen en HubSpot",
+"P2-3":"«Si» si indaga qué quiere financiar, por qué monto y para cuándo; «NA» si el asociado ya lo había informado completo",
+"P2-4":"«Si» si resuelve dudas y objeciones sin presionar; «No» si presiona, evade o discute; «NA» si el asociado no tuvo dudas ni objeciones",
+"P2-5":"«Si» si ofrece un valor adicional o una alternativa permitida cuando corresponde; «NA» si no había nada que ofrecer",
+"P3-1":"Cada documento o pendiente con tarea, responsable y fecha. Solo con registro de HubSpot",
+"P3-2":"En estudio escala a las 48 h; el negocio Congelado se gestiona en 48 h o menos. Solo con registro de HubSpot",
+"P3-3":"En Aprobado confirma condiciones y aceptación del asociado y hace seguimiento al desembolso. Solo con registro de HubSpot",
+"P3-4":"Motivo correcto al descalificar un lead o descartar un negocio. Solo con registro de HubSpot",
+"P3-5":"En postventa informa fecha y medios de pago y canales oficiales, y registra novedades en ticket. «NA» si no es postventa",
+"CB-1":"«Si» si informa valor a pagar, fecha límite, referencia o recibo y medios de pago oficiales, correctos y vigentes; «No» si falta alguno o es incorrecto",
+"CB-2":"«Si» si ofrece de inmediato alternativas de pago autorizadas según la situación (fecha de compromiso, acuerdo, normalización); «NA» si el asociado paga sin necesitar alternativas",
+"CB-3":"Resultado en HubSpot: compromiso de pago (valor y fecha), novedad o motivo de no pago. Solo con registro de HubSpot",
+"CB-4":"Tarea de seguimiento al compromiso de pago con fecha. Solo con registro de HubSpot",
+"CB-5":"«Si» si responde la consulta del asociado de forma oportuna, dentro del tiempo de respuesta del canal",
+"CB-6":"«Si» si confirma que el asociado entendió y le indica cómo descargar o consultar su recibo en los canales digitales; «NA» si la consulta no se trataba del recibo",
+"CC-1":"«Si» si responde la réplica del asociado a la plantilla masiva de cobranza en el tiempo que defina la coordinación (si no hay tiempo definido, «NE»)",
+"CC-2":"«Si» si retoma el motivo del mensaje enviado, se identifica y explica por qué se contactó al asociado, sin presionar",
+"P4-1":"Cada contacto registrado como actividad del tipo correcto, con fecha y hora reales. Solo con registro de HubSpot",
+"P4-2":"Actividad en el objeto correcto (lead, negocio o ticket) y asociada al contacto. Solo con registro de HubSpot",
+"P4-3":"Notas que dicen qué pasó, qué falta, quién lo hace y cuándo. Solo con registro de HubSpot",
+"P4-4":"«Si» si no pide de nuevo lo que el asociado ya entregó y, si transfiere el caso, deja un resumen; «NA» si no hubo transferencia ni datos repetidos",
+"P4-5":"Datos correctos en HubSpot (documento, ID, radicado, correo, teléfono). Solo con registro de HubSpot",
+"P5-1":"«Si» si es cordial y claro y reconoce la situación del asociado con una frase de empatía; «No» si es seco, mecánico o ignora la emoción del asociado",
+"P5-2":"«Si» si responde a lo que el asociado dijo sin interrumpir ni discutir; «No» si lo interrumpe, le lleva la contraria con reproches o hace repetir datos",
+"P5-3":"«Si» si cierra con un compromiso y el próximo paso acordado; «No» si cierra sin dejar claro qué sigue",
+"P5-4":"«Si» si usa bien el tiempo: sin rodeos, esperas sin avisar ni silencios largos; «No» si alarga o dilata sin motivo",
+"WA-1":"«Si» si adapta las plantillas a lo que el asociado preguntó (no envía una plantilla sin ajustarla) Y no hay errores de ortografía o puntuación que cambien el sentido, abreviaturas de chat ni mayúsculas sostenidas; «No» si falla alguna de las dos cosas",
+"WA-3":"«Si» si el contacto del asociado queda creado y la cuenta asociada en el CRM; «No» si trabaja el caso sin crear o asociar el contacto. Solo con registro de HubSpot; sin él, «NE»",
+"WA-4":"«Si» si, tras perfilar un crédito nuevo, pide los documentos de la línea correspondiente; «NA» si no hubo perfilamiento de crédito nuevo (consulta, cobranza u otro trámite)",
+"WA-5":"«Si» si envía la encuesta de satisfacción y cierra la conversación; «No» si deja la conversación abierta o sin encuesta al terminar la atención; «NE» si la conversación aún sigue abierta",
+"LL-1":"«Si» si se presenta al abrir la llamada (nombre, cargo y Cooperativa)",
+"LL-2":"«Si» si informa antes de dejar al asociado en espera y lo retoma; «NA» si no hubo espera",
+"LL-3":"«Si» si resume los acuerdos al cerrar la llamada",
+"CO-1":"«Si» si el asunto del correo es claro y corresponde al tema",
+"CO-2":"«Si» si incluye saludo y la firma actualizada",
+"CO-3":"«Si» si dice qué solicita al asociado y para cuándo; «NA» si no se le pidió nada",
+"PR-1":"«Si» si orienta al asociado en la sede (a dónde ir, con quién y qué sigue)",
+"PR-2":"«Si» si revisa los documentos en el momento y le dice qué falta; «NA» si no se llevaron documentos",
+"PR-3":"Registro de la reunión en HubSpot. Solo con registro de HubSpot"
+};
+
+function criteriaText(){return C.map(c=>`${c.code} | ${c.p} | ${c.desc} | ${c.crit?"CRÍTICO ("+c.kind+")":"peso "+c.w} | ${c.recv?"si es N/A pasa al "+c.recv:c.na?"si es N/A no traslada peso":"NO admite N/A"}${c.hub&&!hubOn()?" | HUBSPOT: sin registro aportado":""}`).join("\n");}
+function rulesText(){return C.map(c=>`- ${c.code}: ${RULES[c.code]||c.desc}`).join("\n");}
+
+/* ---------- Prompt ---------- */
+function asesorTxt(){return ($("asesorN").value||"").trim();}
+const PROC_WA="PROCESO WHATSAPP · SEDES COMERCIALES (actividad · responsable)\n1. El usuario o asociado ingresa al canal de WhatsApp.\n2. Se asigna la conversación a un asesor comercial en el aplicativo (CRM asignado, Coordinador o Analista comercial).\n3. ¿Ingresa dentro del horario de atención? Sí: actividad 4. No: actividad 13.\n4. El asesor atiende con base en el hilo sostenido con el Asistente Virtual BLUE, usando los guiones según el tipo de requerimiento.\n5. ¿El usuario responde? Sí: actividad 6. No: actividad 14.\n6. ¿BLUE hizo las preguntas de validación de identidad? Sí: actividad 7. No: actividad 8.\n7. El asesor valida en CYGNUS que los datos suministrados estén correctos y, si no, los ajusta. Sigue a la 9.\n8. El asesor hace las preguntas de validación de titularidad para confirmar identidad, u otras según el protocolo.\n9. ¿El usuario está creado como contacto en el CRM? Sí: actividad 11. No: actividad 10.\n10. El asesor crea el contacto en el CRM.\n11. El asesor asocia la cuenta del usuario en el CRM según la PV-IN-02.\n12. El asesor da la asesoría comercial según AS-026, PV-PR-01, PV-PR-02, PV-PR-03, PV-PR-08, las fichas PV-DG-03, PV-DG-04, PV-DG-05 y PV-DG-09, PV-LM-04 (productos autorizados por sede) y AS-PR-02 (trámites con el asociado); recibos de pago: CT-IN-04 y CT-IN-08. Sigue a la 16. Si la conversación está bloqueada por espera superior a 24 horas: actividad 17; si no: actividad 4.\n13. Fuera de horario: el asesor valida con el guion si el usuario sigue en línea.\n14. ¿Se recibe respuesta? Sí: actividad 6.\n15. El asesor pregunta por plantilla en qué puede servir y espera respuesta 5 minutos. Si responde: 15.1. Si no: actividad 17.\n15.1 Solicita por fragmento tiempo en línea para validaciones según el requerimiento. Si es posventa (recibos de pago): ver 12.\n15.2 Igual, si es un acuerdo de aportes: ver 12.\n15.3 Solicita por plantilla tiempo en línea; si es crédito nuevo, hace el perfilamiento de las líneas de la actividad 12.\n15.4 Identificado el perfilamiento, solicita los documentos de cada línea.\n15.5 Si es una renovación, da el fragmento y genera 15.7 y 15.8.\n15.6 Envía la encuesta de satisfacción y cierra la conversación.\n15.7 Crea en HubSpot una tarea para validar la radicación.\n15.8 ¿Hubo radicación? Sí: revisar y subsanar pendientes. No: hacer 15.6 y abrir conversación por WhatsApp.\n15.9 ¿Hubo radicación? Sí: revisar y subsanar pendientes. No: hacer 15.6 y llamar.\n16. El asesor cierra la conversación.\n17 a 22. Seguimiento mensual, monitoreo aleatorio y retroalimentación sobre la AS-026; plan de acción si hay falencias; monitoreo en tiempo real del canal y ajuste de horarios o funciones del equipo (Asesor y Analista comercial).";
+function procPrompt(){if(canal!=="whatsapp"||!$("procOn").checked)return "";const t=($("procTxt").value||"").trim();if(!t)return "";
+  return "\nPROCESO DE REFERENCIA (WhatsApp, sedes comerciales). Úsalo solo como contexto de lo que el asesor debe hacer; califica únicamente los criterios de la lista y no inventes criterios del proceso. Si una conducta del proceso no se ve en la conversación o depende de otro sistema, usa «NE» salvo que la regla del criterio indique otra cosa:\n<<<\n"+t+"\n>>>\n";}
+/* Fechas y horas hábiles (festivos de Colombia, Ley Emiliani) */
+function festivosCO(y){const k=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(),out=new Set();
+  const lunes=d=>{while(d.getDay()!==1)d.setDate(d.getDate()+1);return d;};
+  [[0,1],[4,1],[6,20],[7,7],[11,8],[11,25]].forEach(([m,d])=>out.add(k(new Date(y,m,d))));
+  [[0,6],[2,19],[5,29],[7,15],[9,12],[10,1],[10,11]].forEach(([m,d])=>out.add(k(lunes(new Date(y,m,d)))));
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),kk=c%4,l=(32+2*e+2*i-h-kk)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=(h+l-7*m+114)%31+1;
+  [-3,-2,43,64,71].forEach(x=>out.add(k(new Date(y,mes-1,dia+x))));return out;}
+function habil(d){if(d.getDay()===0||d.getDay()===6)return false;return !festivosCO(d.getFullYear()).has(d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate());}
+const fecha=id=>{const v=($(id)&&$(id).value)||"";const m=v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);return m?new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]):null;};
+const fTxt=d=>d.toLocaleString("es-CO",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+const hmin=id=>{const m=(($(id)&&$(id).value)||"").match(/^(\d{2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null;};
+function sumaHabiles(t,horas,ini,fin){
+  const d=new Date(t),mins=x=>x.getHours()*60+x.getMinutes();let rest=horas*60;
+  const sig=()=>{do{d.setDate(d.getDate()+1);}while(!habil(d));d.setHours(0,ini,0,0);};
+  if(!habil(d))sig();else if(mins(d)<ini)d.setHours(0,ini,0,0);else if(mins(d)>=fin)sig();
+  for(;;){const disp=fin-mins(d);if(rest<=disp){d.setMinutes(d.getMinutes()+rest);return d;}rest-=disp;sig();}
+}
+function ecnPlazo(){const a=fecha("fAsig"),p=fecha("fPrim"),ini=hmin("hIni"),fin=hmin("hFin");
+  if(!a||!p)return null;if(ini==null||fin==null||fin<=ini)return{err:"Revisa el horario hábil: la hora final debe ser posterior a la inicial."};
+  if(p<a)return{err:"El primer contacto no puede ser anterior a la asignación."};
+  const l=sumaHabiles(a,3,ini,fin);return{a,p,l,ok:p<=l};}
+function showEcn(){const el=$("ecnMsg");if(!el)return;const p=ecnPlazo();el.className="msg";
+  if(!p){el.textContent="";return;}if(p.err){el.className="msg err";el.textContent=p.err;return;}
+  el.className="msg"+(p.ok?"":" warn");el.textContent="Plazo hasta "+fTxt(p.l)+": "+(p.ok?"contactó a tiempo (ECN-1 = Sí).":"contactó fuera de plazo (ECN-1 = No).");}
+function applyEcn(fixOrig){const i=C.findIndex(c=>c.code==="ECN-1");if(i<0)return;const p=ecnPlazo();if(!p||p.err)return;const st=state[i];
+  st.cal=p.ok?"Si":"No";st.razon="Fechas registradas por el analista: el primer contacto debe darse dentro de 3 horas hábiles (PV-PR-09).";
+  st.evidencia="Asignado "+fTxt(p.a)+"; primer contacto "+fTxt(p.p)+"; plazo hasta "+fTxt(p.l);
+  st.conducta=p.ok?"Contacta al lead dentro de las 3 horas hábiles.":"Contacta al lead después de las 3 horas hábiles.";
+  st.mejora=p.ok?"":"Hacer el primer contacto dentro de las 3 horas hábiles siguientes a la asignación.";
+  if(fixOrig||!st.orig)st.orig=st.cal;}
+function datosTxt(){const g=fecha("fGest"),r=fecha("fRec"),s=fecha("fRes"),a=fecha("fAsig"),p=fecha("fPrim");
+  const l=[g?"fecha y hora de la gestión: "+fTxt(g):"",canal==="correo"&&r?"correo del usuario recibido el "+fTxt(r):"",canal==="correo"&&s?"respuesta del asesor enviada el "+fTxt(s):"",
+    canal==="correo"&&($("asesorMail").value||"").trim()?"correo calificado: el que salió desde "+$("asesorMail").value.trim():"",a?"lead asignado el "+fTxt(a):"",p?"primer contacto el "+fTxt(p):""].filter(Boolean);
+  return l.length?"\nDATOS REGISTRADOS POR EL ANALISTA (úsalos como dato cierto; ECN-1, si hay fechas de asignación y primer contacto, lo califica la herramienta: devuélvelo «NE»):\n- "+l.join("\n- ")+"\n":"";}
+function buildPrompt(chat){
+return `Eres analista de calidad comercial (Preventa y Venta) de una cooperativa colombiana. Califica la interacción con el formato de monitoreo comercial PV-FR-62 (instructivo PV-IN-04), canal ${CANALES[canal].nombre.toUpperCase()}, gestión «${GEST[gi]}». Responde en español, con tono profesional y neutral.
+
+REGLAS
+- Usa solo la interacción aportada y SOLO los criterios de esta lista. No inventes evidencias. Si la evidencia es insuficiente o ambigua, no infieras cumplimiento ni incumplimiento: usa "NE".
+- Calificaciones: "Si" (cumple), "No" (no cumple), "NA" (la situación que mide el criterio no se dio; solo en criterios que admiten N/A), "NE" (revisión del analista: el criterio aplica pero la evidencia aportada no permite verificarlo).
+- Nunca uses "NA" en criterios marcados "NO admite N/A".
+- Los criterios HD son la Fase I (control Habeas Data). Los criterios CRÍTICOS (ECU, ECN, ECC) se califican "No" solo con un error claro; si no hay error, "Si".
+- Los criterios marcados «HUBSPOT: sin registro aportado» dependen de lo registrado en HubSpot, que no se aportó: devuélvelos con calificación "NE" y evidencia "Lo selecciona el analista (HubSpot)".
+- No uses los criterios del CUSI (PV-FR-59, PV-FR-60, PV-FR-61).
+- Enmascara documentos, teléfonos, correos y otros datos personales completos en todo lo que escribas (ej.: CC ***456).
+- Sé breve: "conducta" máximo 12 palabras. Cuando la calificación es "Si", deja "conducta" y "mejora" vacías y escribe en "evidencia" la referencia de tiempo y máximo 8 palabras.
+- "razon": por qué asignas esa calificación según el parámetro del criterio, máximo 15 palabras.
+- "evidencia": empieza SIEMPRE con la referencia de tiempo, entre corchetes, tal como aparece en la interacción: hora del mensaje en WhatsApp (ej.: [09:14]), minuto de la llamada (ej.: [03:25]) o fecha y hora del correo (ej.: [16/10 10:02]); si la interacción no trae horas, escribe [sin hora]. Luego la cita breve (máximo 20 palabras) o la descripción precisa de la situación; en NA, el motivo; en NE, el dato que el analista debe verificar.
+- "mejora": acción concreta, viable y ligada a la conducta, solo cuando la calificación es "No"; en otro caso cadena vacía.
+- "observacion": una o dos frases al estilo de los tutores, listas para pegar en el formato.
+- "fortalezas" y "oportunidades": las dos o tres principales, sin repetir la interacción.
+- "plan_accion": dos o tres acciones concretas para el asesor, ligadas a los criterios en "No", cada una con un plazo corto. Si no hay criterios en "No", una acción para mantener el desempeño.
+- Si la interacción no corresponde al canal ${CANALES[canal].nombre.toLowerCase()} o no es una atención comercial, devuelve "canal" con el canal real o "indeterminado" y "criterios": [].
+- Desempate: si un criterio queda en duda entre "Si" y "No", aplica el parámetro del criterio y no tu impresión general; si no hay evidencia a favor ni en contra, "NE".
+- No calcules puntajes: la herramienta los calcula.
+
+PARÁMETROS POR CRITERIO
+${rulesText()}
+
+CRITERIOS (código | propiedad | criterio | peso | regla N/A)
+${criteriaText()}
+
+FORMATO DE SALIDA: responde SOLO con un objeto JSON, sin texto adicional:
+{"canal":"${canal}|otro canal|indeterminado","asesor":"nombre del asesor si aparece, o vacío","criterios":[{"codigo":"HD-1","calificacion":"Si|No|NA|NE","razon":"...","conducta":"conducta evaluada, una frase","evidencia":"...","mejora":"..."}],"observacion":"...","fortalezas":["..."],"oportunidades":["..."],"plan_accion":[{"accion":"...","plazo":"..."}]}
+Incluye los ${C.length} criterios en orden.
+${asesorTxt()?"\nASESOR INDICADO POR EL ANALISTA: "+asesorTxt()+"\n":""}${datosTxt()}${procPrompt()}${hubOn()?"\nREGISTRO EN HUBSPOT APORTADO POR EL ANALISTA:\n<<<\n"+$("hub").value.trim()+"\n>>>\n":""}
+INTERACCIÓN (${CANALES[canal].nombre.toUpperCase()}):
+<<<
+${chat}
+>>>`;}
+
+/* ---------- Claude ---------- */
+let samplePromise=null,ctl=null,timer=null;
+function getSample(){if(!samplePromise)samplePromise=(window.claude?.use?window.claude.use("sample"):Promise.resolve(null)).catch(()=>null);return samplePromise;}
+function setStatus(t,cls){const s=$("status");s.className="msg"+(cls?" "+cls:"");s.textContent=t;}
+const ERR={not_granted:"No se dio permiso para usar Claude en esta página. Puedes calificar a mano con las listas de la tabla.",sampling_disabled:"Claude no está disponible para esta cuenta. Puedes calificar a mano con la tabla.",rate_limited:"Llegaste al límite de uso de Claude por ahora. Intenta de nuevo en unos minutos.",session_expired:"Tu sesión de Claude venció. Vuelve a iniciar sesión y recarga la página.",prompt_too_large:"La interacción es demasiado larga. Pega solo lo que se va a evaluar.",invalid_json:"Claude respondió en un formato inesperado. Pulsa de nuevo «Calificar con Claude».",refused:"Claude no pudo evaluar este texto. Revisa que sea una interacción comercial.",empty_completion:"Claude no devolvió respuesta. Intenta de nuevo."};
+
+async function run(){
+  const chat=$("chat").value.trim();
+  if(!chat){setStatus("Pega primero la interacción.","warn");$("chat").focus();return;}
+  setStatus("Conectando con Claude…");$("go").disabled=true;
+  const sample=await Promise.race([getSample(),new Promise(r=>setTimeout(()=>r(null),12000))]);
+  $("go").disabled=false;
+  if(!sample){setStatus("Esta vista no puede consultar a Claude. Abre la página en el navegador desde claude.ai, o usa la opción «Hazlo desde el chat de Claude» de abajo.","err");$("manual").open=true;return;}
+  ctl=new AbortController();$("go").disabled=true;$("stop").hidden=false;
+  const t0=Date.now();setStatus("Analizando la interacción… 0 s");
+  timer=setInterval(()=>{const s=Math.round((Date.now()-t0)/1000);setStatus("Analizando la interacción… "+s+" s"+(s>=25?". Si te apareció un aviso para permitir que la página use Claude, acéptalo. Si no ves ningún aviso, usa la opción de abajo.":""));if(s===25)$("manual").open=true;},1000);
+  try{
+    let writing=false;
+    const res=await sample.json(buildPrompt(chat),{signal:ctl.signal,cache:false,onText:({text})=>{
+      if(!writing){writing=true;clearInterval(timer);}
+      const k=(text.match(/"codigo"\s*:/g)||[]).length;setStatus("Claude está escribiendo la calificación: criterio "+Math.min(k,C.length)+" de "+C.length+"…");}});
+    apply(res);
+  }catch(e){
+    if(e&&e.code==="cancelled")setStatus("Calificación detenida.");
+    else{setStatus((ERR[e&&e.code]||"No se pudo completar la calificación. Intenta de nuevo.")+" (código: "+(e&&e.code||e)+")","err");$("manual").open=true;}
+  }finally{clearInterval(timer);$("go").disabled=false;$("stop").hidden=true;}
+}
+
+const planTxt=a=>(a||[]).map(x=>typeof x==="string"?x:[x&&x.accion,x&&x.plazo?"(plazo: "+x.plazo+")":""].filter(Boolean).join(" "));
+function apply(res){
+  const got=String(res&&res.canal||"").toLowerCase();
+  const list=Array.isArray(res&&res.criterios)?res.criterios:[];
+  if(!list.length){
+    setStatus(got==="indeterminado"||!got?"No se pudo determinar el canal. Revisa que la interacción esté completa.":"Claude identificó la interacción como «"+got+"», pero el canal elegido es "+CANALES[canal].nombre+". Cambia el canal arriba y vuelve a calificar.","warn");return;}
+  const norm=v=>{v=String(v||"").toLowerCase().replace(/[^a-z]/g,"");return v==="si"?"Si":v==="no"?"No":v==="na"?"NA":v.startsWith("ne")||v.startsWith("noeval")?"NE":"";};
+  state=C.map(c=>{const it=list.find(x=>String(x&&x.codigo).toUpperCase()===c.code)||{};return{cal:norm(it.calificacion),razon:String(it.razon||""),conducta:String(it.conducta||""),evidencia:String(it.evidencia||""),mejora:String(it.mejora||""),orig:"",obsA:""};});
+  // Los ítems de HubSpot los selecciona el analista si no se aportó el registro.
+  if(!hubOn())C.forEach((c,i)=>{if(c.hub){const st=state[i];st.cal="NE";st.razon="Depende de HubSpot y no se aportó el registro.";st.evidencia="Lo selecciona el analista en HubSpot.";st.mejora="";st.conducta="";}});
+  applyEcn(true);
+  state.forEach(st=>{st.orig=st.cal;});
+  extra={asesor:String(res.asesor||asesorTxt()||""),observacion:String(res.observacion||""),fortalezas:(res.fortalezas||[]).map(String),oportunidades:(res.oportunidades||[]).map(String),plan:planTxt(res.plan_accion)};
+  renderExtra();
+  const missing=state.filter((s,i)=>!s.cal&&!(C[i].hub&&!hubOn())).length;
+  const hubN=C.filter(c=>c.hub).length;
+  recalc();
+  setStatus((missing?"Listo. "+missing+" criterio(s) más quedaron sin calificar: complétalos en la tabla.":"Listo. Revisa cada criterio y ajusta lo que haga falta.")+(hubN&&!hubOn()?" Los "+hubN+" ítems de HubSpot quedan para ti.":""),"warn");
+}
+
+/* ---------- Texto y copia ---------- */
+function resultText(){
+  const r=compute();const sc=$("sScore").textContent,sub=$("sScoreSub").textContent;
+  let t=`Resultado del monitoreo comercial\nCanal: ${CANALES[canal].nombre}\nGestión: ${GEST[gi]}\nFormato aplicado: PV-FR-62 (PV-IN-04)\nHerramienta: Calificador Comercial ${VERSION}\n${extra&&extra.asesor?"Asesor: "+extra.asesor+"\n":""}Nota de la ${CANALES[canal].unidad}: ${sc}${sc.includes("/")?"":" ("+sub+")"}\nFase I (Habeas Data): ${$("sFase").textContent}${r.fail?" ("+r.err.HD.join(", ")+")":""}\nNivel y estado: ${$("sNivel").textContent}\nErrores críticos: ECU ${r.err.ECU.length?"con error ("+r.err.ECU.join(", ")+")":"sin error"} · ECN ${r.err.ECN.length?"con error ("+r.err.ECN.join(", ")+")":"sin error"} · ECC ${r.err.ECC.length?"con error ("+r.err.ECC.join(", ")+")":"sin error"}\n${r.alert.length?"Reporte inmediato a la Dirección Comercial: "+r.alert.join(", ")+"\n":""}\nEvaluación por criterio\n`;
+  C.forEach((c,i)=>{const s=state[i];t+=`${c.code}. ${c.p?c.p+" | ":""}${LABEL[s.cal]} | logrado ${r.got[i]||"0"}${s.razon?" | Razón: "+s.razon:""} | ${s.conducta}${s.evidencia?" | Evidencia: "+s.evidencia:""}${s.cal==="No"&&s.mejora?" | Mejora: "+s.mejora:""}${changed(i)?" | Cambiado por el analista (Claude propuso "+LABEL[s.orig]+")":""}${s.obsA?" | Observación del analista: "+s.obsA:""}\n`;});
+  t+=`Total obtenido: ${r.fail?0:fmt(r.score)} de 100${r.ne?" (pendiente "+fmt(r.ne)+" en revisión del analista)":""}\n`;
+  if(extra){t+=`${extra.actualizado?"\nAnálisis actualizado con las observaciones del analista.":""}\nObservación para el formato\n${extra.observacion}\n\nFortalezas\n${extra.fortalezas.map(x=>"- "+x).join("\n")}\n\nOportunidades de mejora\n${extra.oportunidades.map(x=>"- "+x).join("\n")}\n${extra.plan&&extra.plan.length?"\nPlan de acción sugerido\n"+extra.plan.map((x,k)=>(k+1)+". "+x).join("\n")+"\n":""}`;}
+  return t;
+}
+function resultTsv(){const r=compute();const clean=x=>String(x||"").replace(/[\t\n]+/g," ");
+  return ["Código\tPropiedad\tCriterio\tPeso\tCalificación\tPeso logrado\tRazón\tConducta\tEvidencia\tMejora\tPropuesta de Claude\tObservación del analista"].concat(C.map((c,i)=>[c.code,c.p,c.desc,c.crit?"Crítico":c.w,LABEL[state[i].cal],r.got[i],state[i].razon,state[i].conducta,state[i].evidencia,state[i].cal==="No"?state[i].mejora:"",state[i].orig?LABEL[state[i].orig]:"",state[i].obsA].map(clean).join("\t"))).concat(["\t\tTotal obtenido\t100\t\t"+(r.fail?0:fmt(r.score))]).join("\n");}
+async function copy(txt){
+  const fb=$("copyFallback");
+  try{await navigator.clipboard.writeText(txt);$("copyMsg").textContent="Copiado.";fb.hidden=true;}
+  catch(e){fb.value=txt;fb.hidden=false;fb.focus();fb.select();$("copyMsg").textContent="Selecciona el texto de abajo y cópialo con Ctrl+C.";}
+}
+async function copyTo(txt,msgEl){try{await navigator.clipboard.writeText(txt);msgEl.textContent="Copiado. Ya puedes pegarlo en el formulario.";}
+  catch(e){const fb=$("copyFallback");fb.value=txt;fb.hidden=false;fb.focus();fb.select();msgEl.textContent="Selecciona el texto del cuadro de abajo y cópialo con Ctrl+C.";}}
+const anaPart={obs:()=>extra?extra.observacion:"",fort:()=>extra?extra.fortalezas.map(x=>"- "+x).join("\n"):"",opor:()=>extra?extra.oportunidades.map(x=>"- "+x).join("\n"):"",plan:()=>extra?extra.plan.map((x,k)=>(k+1)+". "+x).join("\n"):""};
+function analysisText(){if(!extra)return "";
+  return `${extra.asesor?"Asesor: "+extra.asesor+"\n":""}Nota: ${$("sScore").textContent}${$("sScore").textContent.includes("/")?"":" ("+$("sScoreSub").textContent+")"}\n\nObservación\n${anaPart.obs()}\n\nFortalezas\n${anaPart.fort()}\n\nOportunidades de mejora\n${anaPart.opor()}${extra.plan.length?"\n\nPlan de acción\n"+anaPart.plan():""}`;}
+
+function renderExtra(){
+  $("obs").textContent=extra.observacion;
+  const fill=(id,arr)=>{const u=$(id);u.textContent="";arr.forEach(x=>{const li=document.createElement("li");li.textContent=x;u.append(li);});};
+  fill("fort",extra.fortalezas);fill("opor",extra.oportunidades);fill("plan",extra.plan);
+  $("analysis").hidden=false;recalc();
+}
+
+/* ---------- Análisis actualizado ---------- */
+function redoPrompt(){
+  const r=compute();
+  const rows=C.map((c,i)=>{const s=state[i];return `${c.code} | ${c.desc} | final: ${LABEL[s.cal]||"sin calificar"}${changed(i)?" | CAMBIADO por el analista (Claude propuso "+LABEL[s.orig]+")":""}${s.obsA.trim()?" | OBSERVACIÓN DEL ANALISTA: "+s.obsA.trim():""}${s.conducta?" | conducta: "+s.conducta:""}${s.evidencia?" | evidencia: "+s.evidencia:""}`;}).join("\n");
+  return `Eres analista de calidad comercial (Preventa y Venta) de una cooperativa colombiana. Un analista revisó la calificación de una interacción del canal ${CANALES[canal].nombre.toUpperCase()} (gestión «${GEST[gi]}») y cambió algunas calificaciones dejando su observación. Rehaz el análisis con las calificaciones FINALES. Responde en español, con tono profesional y neutral.
+
+REGLAS
+- Las calificaciones finales y las observaciones del analista mandan sobre la propuesta inicial de Claude: tenlas en cuenta en todo el análisis y no contradigas lo que el analista decidió.
+- No inventes hechos que no estén en las evidencias ni en las observaciones. Enmascara datos personales.
+- "observacion": una o dos frases al estilo de los tutores, listas para pegar en el formato.
+- "fortalezas" y "oportunidades": las dos o tres principales.
+- "plan_accion": dos o tres acciones concretas ligadas a los criterios en "No", cada una con un plazo corto. Si no hay criterios en "No", una acción para mantener el desempeño.
+- "mejoras": para cada criterio que quedó en "No" y fue cambiado por el analista, una mejora concreta (codigo y mejora).
+- No calcules puntajes.
+
+NOTA (la calculó la herramienta): ${$("sScore").textContent} · ${$("sScoreSub").textContent} · Fase I: ${$("sFase").textContent}
+
+CRITERIOS (código | criterio | calificación final | cambios y observaciones)
+${rows}
+
+ANÁLISIS ANTERIOR
+Observación: ${extra?extra.observacion:""}
+Fortalezas: ${extra?extra.fortalezas.join(" / "):""}
+Oportunidades: ${extra?extra.oportunidades.join(" / "):""}
+
+FORMATO DE SALIDA: responde SOLO con un objeto JSON, sin texto adicional:
+{"observacion":"...","fortalezas":["..."],"oportunidades":["..."],"plan_accion":[{"accion":"...","plazo":"..."}],"mejoras":[{"codigo":"P2-4","mejora":"..."}]}`;}
+function applyRedo(res){
+  if(!res||typeof res!=="object"||!res.observacion)throw new Error("sin análisis");
+  extra=Object.assign(extra||{asesor:""},{observacion:String(res.observacion||""),fortalezas:(res.fortalezas||[]).map(String),oportunidades:(res.oportunidades||[]).map(String),plan:planTxt(res.plan_accion),actualizado:true});
+  (res.mejoras||[]).forEach(m=>{const i=C.findIndex(c=>c.code===String(m&&m.codigo).toUpperCase());if(i>=0&&state[i].cal==="No"&&m.mejora)state[i].mejora=String(m.mejora);});
+  extra.firma=changeSig();renderExtra();
+}
+const changeSig=()=>state.map(s=>s.cal+"|"+s.obsA.trim()).join("~");
+function redoHint(){
+  if(!extra)return;
+  const ch=C.filter((c,i)=>changed(i)).map(c=>c.code),pend=C.filter((c,i)=>changed(i)&&!state[i].obsA.trim()).map(c=>c.code);
+  const stale=extra.firma?extra.firma!==changeSig():ch.length>0;
+  $("redo").disabled=!ch.length||pend.length>0;$("copyRedo").disabled=$("redo").disabled;
+  $("redoMsg").textContent=!ch.length?"Si cambias calificaciones y dejas tu observación, puedes actualizar el análisis para que las tenga en cuenta.":pend.length?"Escribe la observación del cambio en "+pend.join(", ")+" para actualizar el análisis.":stale?"Cambiaste "+ch.join(", ")+": actualiza el análisis para que tenga en cuenta tus observaciones.":"El análisis ya tiene en cuenta tus cambios y observaciones.";
+  $("redoMsg").className="msg"+(ch.length&&stale&&!pend.length?" warn":"");
+}
+async function redo(){
+  const sample=await Promise.race([getSample(),new Promise(r=>setTimeout(()=>r(null),12000))]);
+  if(!sample){$("redoStatus").textContent="Esta vista no puede consultar a Claude. Usa la opción de abajo.";$("redoManual").open=true;return;}
+  $("redo").disabled=true;$("redoStatus").className="msg";$("redoStatus").textContent="Actualizando el análisis…";
+  try{applyRedo(await sample.json(redoPrompt(),{cache:false}));$("redoStatus").textContent="Análisis actualizado con tus observaciones.";}
+  catch(e){$("redoStatus").className="msg err";$("redoStatus").textContent=(ERR[e&&e.code]||"No se pudo actualizar el análisis. Intenta de nuevo o pégalo desde el chat de Claude.");$("redoManual").open=true;}
+  finally{redoHint();}
+}
+
+/* ---------- Periodo y muestra ---------- */
+function monthly(){
+  const vals=$("scores").value.split(/[;\n]+/).map(s=>parseFloat(s.trim().replace(",","."))).filter(v=>!isNaN(v)&&v>=0&&v<=100);
+  document.querySelectorAll("#levels span").forEach(s=>s.classList.remove("on"));
+  if(!vals.length){$("mOut").textContent="Escribe las notas para ver el nivel.";return;}
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length,res=avg*3,lvl=nivelDe(avg);
+  $("mOut").textContent=`${vals.length} interacción(es) · promedio ${fmt(avg)} % · ${fmt(res)} / 300 · Nivel ${lvl} · ${avg>=MINIMO?"Aprobado (85% o más)":"Plan de acción (menos de 85%)"}`;
+  document.querySelector(`#levels span[data-l="${lvl}"]`).classList.add("on");
+  try{localStorage.setItem("com-scores",$("scores").value);}catch(e){}
+}
+function muestra(){
+  const N=parseInt($("mN").value,10),Z=parseFloat($("mC").value),E=parseFloat($("mE").value),A=parseInt($("mA").value,10)||0,M=parseInt($("mM").value,10)||0;
+  if(!(N>0)){$("mRes").textContent="Escribe N para calcular la muestra.";return;}
+  const n=Math.ceil(N*Z*Z*0.25/(E*E*(N-1)+Z*Z*0.25));
+  const por=A>0?Math.max(M,Math.ceil(n/A)):null;
+  $("mRes").textContent=`Muestra global n = ${n} casos${por?` · ${por} por asesor si el reparto es igual (${por*A} en total)`:""}.`;
+  try{localStorage.setItem("com-muestra",JSON.stringify([$("mN").value,$("mC").value,$("mE").value,$("mA").value,$("mM").value]));}catch(e){}
+}
+
+/* ---------- Archivos ---------- */
+// Carga de la interacción desde archivo: solo se extrae el texto, en el navegador.
+async function readFile(f){
+  const n=f.name.toLowerCase();
+  if(n.endsWith(".txt")||f.type==="text/plain")return await f.text();
+  if(n.endsWith(".docx"))return await readDocx(await f.arrayBuffer());
+  if(n.endsWith(".pdf"))return await readPdf(await f.arrayBuffer());
+  throw new Error("formato no admitido");
+}
+function cleanText(t){return String(t||"").replace(/\r\n?/g,"\n").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();}
+async function unzipEntry(buf,name){
+  const dv=new DataView(buf),u8=new Uint8Array(buf);let e=-1;
+  for(let i=u8.length-22;i>=0&&i>=u8.length-70000;i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break;}
+  if(e<0)throw new Error("el .docx está dañado");
+  let off=dv.getUint32(e+16,true);const cnt=dv.getUint16(e+10,true);
+  for(let k=0;k<cnt;k++){
+    const method=dv.getUint16(off+10,true),csize=dv.getUint32(off+20,true),nl=dv.getUint16(off+28,true),xl=dv.getUint16(off+30,true),cl=dv.getUint16(off+32,true),lh=dv.getUint32(off+42,true);
+    const nm=new TextDecoder().decode(u8.subarray(off+46,off+46+nl));
+    if(nm===name){
+      const start=lh+30+dv.getUint16(lh+26,true)+dv.getUint16(lh+28,true),data=u8.subarray(start,start+csize);
+      if(method===0)return new TextDecoder().decode(data);
+      const ds=new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return await new Response(ds).text();
+    }
+    off+=46+nl+xl+cl;
+  }
+  throw new Error("no es un documento de Word");
+}
+async function readDocx(buf){
+  const x=await unzipEntry(buf,"word/document.xml");
+  const t=x.replace(/<w:tab\/>/g,"\t").replace(/<w:br[^>]*\/>/g,"\n").replace(/<\/w:p>/g,"\n").replace(/<[^>]+>/g,"");
+  const d=document.createElement("textarea");d.innerHTML=t;return d.value;
+}
+const PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+let pdfLib=null;
+function loadPdfLib(){if(!pdfLib)pdfLib=new Promise((ok,ko)=>{const s=document.createElement("script");s.src=PDFJS+"pdf.min.js";s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";ok(window.pdfjsLib);};s.onerror=()=>{pdfLib=null;ko(new Error("no cargó el lector de PDF"));};document.head.append(s);});return pdfLib;}
+async function readPdf(buf){
+  const lib=await loadPdfLib();const doc=await lib.getDocument({data:new Uint8Array(buf)}).promise;const out=[];
+  for(let i=1;i<=doc.numPages;i++){const c=await (await doc.getPage(i)).getTextContent();out.push(c.items.map(it=>it.str+(it.hasEOL?"\n":"")).join(""));}
+  return out.join("\n");
+}
+
+
+/* ---------- Canal y eventos ---------- */
+function setChannel(v){
+  canal=v;gi=parseInt($("gest").value,10)||0;setup();extra=null;$("analysis").hidden=true;
+  $("chatLabel").textContent=CANALES[v].label;$("chatHelp").textContent=CANALES[v].help;
+  $("pendingNote").hidden=true;
+  $("correoBox").hidden=v!=="correo";$("procBox").hidden=v!=="whatsapp";$("ecnBox").hidden=!C.some(c=>c.code==="ECN-1");showEcn();
+  buildRows();recalc();setStatus("");
+}
+setChannel("whatsapp");
+try{$("scores").value=localStorage.getItem("com-scores")||"";const m=JSON.parse(localStorage.getItem("com-muestra")||"null");if(m){["mN","mC","mE","mA","mM"].forEach((id,k)=>{if(m[k]!=null&&m[k]!=="")$(id).value=m[k];});}}catch(e){}
+monthly();muestra();
+document.querySelectorAll('input[name=canal]').forEach(r=>r.addEventListener("change",()=>setChannel(r.value)));
+$("gest").addEventListener("change",()=>setChannel(canal));
+$("go").addEventListener("click",run);
+$("stop").addEventListener("click",()=>ctl&&ctl.abort());
+$("loadFile").addEventListener("click",()=>$("chatFile").click());
+$("chatFile").addEventListener("change",async()=>{const f=$("chatFile").files[0];if(!f)return;$("chatFile").value="";
+  const m=$("fileMsg");m.className="msg";m.textContent="Leyendo «"+f.name+"»…";
+  try{const txt=cleanText(await readFile(f));if(!txt){m.className="msg warn";m.textContent="El archivo no tiene texto legible. Si es un PDF escaneado (imagen), copia el texto a mano.";return;}
+    $("chat").value=txt;m.textContent="Listo: se cargaron "+txt.length.toLocaleString("es-CO")+" caracteres de «"+f.name+"». Revisa que esté la interacción completa.";
+    if(txt.length>60000){m.className="msg warn";m.textContent+=" Es muy largo: quita lo que no se evalúa para gastar menos.";}}
+  catch(e){m.className="msg err";m.textContent="No se pudo leer el archivo ("+(e&&e.message||e)+"). Prueba con otro formato o pega el texto.";}});
+$("clear").addEventListener("click",()=>{$("chat").value="";$("hub").value="";$("asesorN").value="";["fGest","fRec","fRes","fAsig","fPrim"].forEach(id=>$(id).value="");showEcn();$("fileMsg").textContent="";state=C.map(blank);extra=null;$("analysis").hidden=true;recalc();setStatus("");});
+$("copyTxt").addEventListener("click",()=>copy(resultText()));
+$("copyTsv").addEventListener("click",()=>copy(resultTsv()));
+$("copyAna").addEventListener("click",()=>copyTo(analysisText(),$("anaMsg")));
+document.querySelectorAll("button[data-copy]").forEach(b=>b.addEventListener("click",()=>{copyTo(anaPart[b.dataset.copy](),$("anaMsg"));b.textContent="Copiado";setTimeout(()=>b.textContent="Copiar",1500);}));
+$("redo").addEventListener("click",redo);
+$("copyRedo").addEventListener("click",async()=>{const p=redoPrompt(),fb=$("redoFallback");
+  try{await navigator.clipboard.writeText(p);$("redoPromptMsg").textContent="Copiadas. Pégalas en un chat nuevo de Claude.";fb.hidden=true;}
+  catch(e){fb.value=p;fb.hidden=false;fb.focus();fb.select();$("redoPromptMsg").textContent="Selecciona el texto y cópialo con Ctrl+C.";}});
+$("loadRedo").addEventListener("click",()=>{const raw=$("redoAnswer").value;const a=raw.indexOf("{"),b=raw.lastIndexOf("}");
+  try{if(a<0||b<a)throw 0;applyRedo(JSON.parse(raw.slice(a,b+1)));$("redoStatus").className="msg";$("redoStatus").textContent="Análisis cargado con tus observaciones.";}
+  catch(e){$("redoStatus").className="msg err";$("redoStatus").textContent="No pude leer el análisis. Copia la respuesta completa de Claude, desde la primera { hasta la última }.";}});
+$("scores").addEventListener("input",monthly);
+$("addScore").addEventListener("click",()=>{const r=compute();if(!state.some(s=>s.cal)){$("mOut").textContent="Primero califica una interacción.";return;}
+  if(C.some((c,i)=>!c.crit&&state[i].cal==="NE")||r.revisar.length){$("mOut").textContent="La nota actual no es calculable: completa los criterios en revisión del analista primero.";return;}
+  const cur=$("scores").value.trim();$("scores").value=(cur?cur+"; ":"")+fmt(r.fail?0:r.score);monthly();});
+["mN","mC","mE","mA","mM"].forEach(id=>$(id).addEventListener("input",muestra));
+$("copyPrompt").addEventListener("click",async()=>{const chat=$("chat").value.trim();if(!chat){$("promptMsg").textContent="Pega primero la interacción arriba.";return;}
+  const p=buildPrompt(chat),fb=$("promptFallback");
+  try{await navigator.clipboard.writeText(p);$("promptMsg").textContent="Copiadas. Pégalas en un chat nuevo de Claude.";fb.hidden=true;}
+  catch(e){fb.value=p;fb.hidden=false;fb.focus();fb.select();$("promptMsg").textContent="Selecciona el texto y cópialo con Ctrl+C.";}});
+$("loadAnswer").addEventListener("click",()=>{const raw=$("answer").value;const a=raw.indexOf("{"),b=raw.lastIndexOf("}");
+  try{if(a<0||b<a)throw 0;apply(JSON.parse(raw.slice(a,b+1)));}catch(e){setStatus("No pude leer la respuesta. Copia la respuesta completa de Claude, desde la primera { hasta la última }.","err");}});
+getSample();
+
+/* ---------- Carga de la muestra al Excel ---------- */
+const COLS=["I","L","O","R","U","X"];
+const XL={SI:"SI",Si:"SI",No:"NO",NA:"N/A"};
+let carga=[];
+try{carga=JSON.parse(localStorage.getItem("com-carga")||"[]");if(!Array.isArray(carga))carga=[];}catch(e){carga=[];}
+function saveCarga(){try{localStorage.setItem("com-carga",JSON.stringify(carga));}catch(e){}}
+function cargaGroups(){
+  const g=new Map();
+  carga.forEach(x=>{const k=[x.asesor,x.canal,x.gi].join("|");if(!g.has(k))g.set(k,[]);g.get(k).push(x);});
+  return [...g.values()];
+}
+function renderCarga(){
+  const box=$("cargaList");box.textContent="";
+  const groups=cargaGroups();
+  groups.forEach(items=>{
+    const d=document.createElement("div");
+    const f=items[0];
+    d.textContent=`${f.asesor} · ${CANALES[f.canal].nombre} · ${GEST[f.gi]}: ${items.length} interacci${items.length===1?"ón":"ones"}${items.length>6?" (se reparte en "+Math.ceil(items.length/6)+" hojas)":""}`;
+    box.append(d);
+  });
+  $("cargaMsg").textContent=carga.length?`${carga.length} interacci${carga.length===1?"ón":"ones"} en la carga, de ${groups.length} hoja${groups.length===1?"":"s"} de asesor.`:"Aún no hay interacciones en la carga.";
+}
+function addCarga(){
+  const m=$("cargaMsg"),asesor=$("asesorN").value.trim();
+  if(!asesor){m.textContent="Escribe el nombre del asesor arriba.";return;}
+  if(!state.some(s=>s.cal)){m.textContent="Primero califica una interacción.";return;}
+  const r=compute();
+  if(C.some((c,i)=>state[i].cal===""||state[i].cal==="NE")||r.revisar.length){m.textContent="Quedan criterios sin calificar o en revisión del analista: complétalos antes de agregar.";return;}
+  const cal={};C.forEach((c,i)=>{cal[c.code]=XL[state[i].cal]||"";});
+  carga.push({asesor,canal,gi,id:$("cId").value.trim()||(fecha("fGest")?fTxt(fecha("fGest")):""),cal});saveCarga();renderCarga();
+  m.textContent="Agregada. "+$("cargaMsg").textContent;
+}
+/* xlsx mínimo, sin librerías */
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=crcT[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zipStore(files){
+  const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  const u16=n=>[n&255,(n>>8)&255],u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];
+  files.forEach(([name,txt])=>{
+    const nm=enc.encode(name),data=enc.encode(txt),crc=crc32(data);
+    const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nm.length),0,0]);
+    parts.push(lh,nm,data);
+    cen.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nm.length),0,0,0,0,0,0,0,0,0,0,0,0,...u32(off)]),nm);
+    off+=lh.length+nm.length+data.length;
+  });
+  const cl=cen.reduce((a,x)=>a+x.length,0);
+  const end=new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cl),...u32(off),0,0]);
+  return new Blob([...parts,...cen,end],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function sheetXml(cells){
+  const byRow={};cells.forEach(([ref,v])=>{const r=+ref.match(/\d+/)[0];(byRow[r]=byRow[r]||[]).push([ref,v]);});
+  const colN=ref=>ref.match(/[A-Z]+/)[0].split("").reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0);
+  const rows=Object.keys(byRow).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r}">`+byRow[r].sort((a,b)=>colN(a[0])-colN(b[0])).map(([ref,v])=>`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`).join("")+"</row>").join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="22" customWidth="1"/><col min="9" max="24" width="14" customWidth="1"/></cols><sheetData>${rows}</sheetData></worksheet>`;
+}
+function buildXlsx(){
+  const mes=$("cMes").value,sheets=[],used=new Set();
+  const inst=[["A1","Carga de la muestra · Calificador Comercial "+VERSION],
+   ["A3","Cómo pasarla al Excel «Estructura_Monitoreo_Comercial_CUSI.xlsx»"],
+   ["A4","1. En esta hoja del asesor, copia el rango I10:X69."],
+   ["A5","2. En la hoja ASESOR que quieras llenar, selecciona la celda I10 y usa Pegado especial > Omitir blancos (así no borras las fórmulas)."],
+   ["A6","3. Escribe en esa hoja el asesor, canal, gestión y mes (celdas B3 a B6): están en cada hoja de esta carga."],
+   ["A7","4. Las filas son los 56 criterios en el orden de la hoja ASESOR (filas 14 a 69). Las celdas vacías son criterios que no aplican a ese canal o gestión."]];
+  sheets.push(["Instrucciones",inst]);
+  cargaGroups().forEach(items=>{
+    const f=items[0];
+    for(let p=0;p<items.length;p+=6){
+      const chunk=items.slice(p,p+6);
+      let nm=(f.asesor+" "+CANALES[f.canal].nombre.slice(0,3)+" "+GEST[f.gi].slice(0,3)+(p?" "+(p/6+1):"")).replace(/[\\\/\?\*\[\]:]/g," ").slice(0,31),k=2;
+      while(used.has(nm.toLowerCase()))nm=nm.slice(0,28)+" "+k++;
+      used.add(nm.toLowerCase());
+      const cells=[["A3","Asesor"],["B3",f.asesor],["A4","Canal"],["B4",CANALES[f.canal].nombre],["A5","Gestión"],["B5",GEST[f.gi]],["A6","Mes"],["B6",mes],["A13","Código"]];
+      chunk.forEach((x,j)=>{cells.push([COLS[j]+"9","Conversación "+(j+1)]);if(x.id)cells.push([COLS[j]+"10",x.id]);cells.push([COLS[j]+"13","Resultado"]);
+        CRIT.forEach((c,i)=>{const v=x.cal[c.code];if(v)cells.push([COLS[j]+(14+i),v]);});});
+      CRIT.forEach((c,i)=>cells.push(["A"+(14+i),c.code]));
+      sheets.push([nm,cells]);
+    }
+  });
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${esc(s[0])}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`;
+  const wrel=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}</Relationships>`;
+  return zipStore([["[Content_Types].xml",ct],["_rels/.rels",rels],["xl/workbook.xml",wb],["xl/_rels/workbook.xml.rels",wrel],...sheets.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`,sheetXml(s[1])])]);
+}
+async function dlCarga(){
+  const m=$("cargaMsg");
+  if(!carga.length){m.textContent="Agrega primero al menos una interacción calificada.";return;}
+  const blob=buildXlsx(),name="Carga_Muestra_Comercial_"+$("cMes").value+".xlsx";
+  try{const d=await window.claude?.use?.("downloads");
+    if(d){await d.save({filename:name,data:blob});m.textContent="Excel de carga listo: "+name;return;}}
+  catch(e){if(e&&e.code==="declined"){m.textContent="Descarga cancelada.";return;}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();m.textContent="Excel de carga listo: "+name;
+}
+$("addCarga").addEventListener("click",addCarga);
+$("dlCarga").addEventListener("click",dlCarga);
+$("clearCarga").addEventListener("click",()=>{const b=$("clearCarga");if(!carga.length)return;
+  if(b.dataset.ask!=="1"){b.dataset.ask="1";b.textContent="Confirmar: vaciar todo";setTimeout(()=>{b.dataset.ask="";b.textContent="Vaciar la carga";},4000);return;}
+  b.dataset.ask="";b.textContent="Vaciar la carga";carga=[];saveCarga();renderCarga();});
+renderCarga();
+
+/* ---------- Lista de asesores y fechas ---------- */
+function pintaAsesores(){const lst=($("listaAs").value||"").split("\n").map(x=>x.trim()).filter(Boolean);
+  const dl=$("asesoresDL");dl.textContent="";lst.forEach(n=>{const o=document.createElement("option");o.value=n;dl.append(o);});return lst.length;}
+try{$("listaAs").value=localStorage.getItem("com-asesores")||"";}catch(e){}
+pintaAsesores();
+$("saveLista").addEventListener("click",()=>{const n=pintaAsesores();let ok=true;try{localStorage.setItem("com-asesores",$("listaAs").value);}catch(e){ok=false;}
+  $("listaMsg").textContent=n?(ok?"Lista guardada: "+n+" asesor"+(n===1?"":"es")+".":"Lista cargada, pero este navegador no permite guardarla."):"La lista está vacía.";});
+["fAsig","fPrim","hIni","hFin"].forEach(id=>$(id).addEventListener("input",()=>{showEcn();
+  if(state.some(s=>s.cal)){applyEcn(true);recalc();}}));
+try{const h=JSON.parse(localStorage.getItem("com-horario")||"null");if(h){$("hIni").value=h[0];$("hFin").value=h[1];}}catch(e){}
+["hIni","hFin"].forEach(id=>$(id).addEventListener("change",()=>{try{localStorage.setItem("com-horario",JSON.stringify([$("hIni").value,$("hFin").value]));}catch(e){}}));
+showEcn();
+
+/* ---------- Proceso de WhatsApp (parámetro) ---------- */
+try{$("procTxt").value=localStorage.getItem("com-proceso-wa")||PROC_WA;$("procOn").checked=localStorage.getItem("com-proceso-wa-on")!=="0";}catch(e){$("procTxt").value=PROC_WA;}
+$("procTxt").addEventListener("input",()=>{try{localStorage.setItem("com-proceso-wa",$("procTxt").value);}catch(e){}});
+$("procOn").addEventListener("change",()=>{try{localStorage.setItem("com-proceso-wa-on",$("procOn").checked?"1":"0");}catch(e){}});
+$("procReset").addEventListener("click",()=>{$("procTxt").value=PROC_WA;try{localStorage.removeItem("com-proceso-wa");}catch(e){}$("procMsg").textContent="Proceso original restaurado.";});
+
+</script>
