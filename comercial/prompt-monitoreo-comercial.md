@@ -82,4 +82,4 @@ Es el flujo que sigue el asesor en WhatsApp. Sirve como contexto para calificar;
 
 ## Pendiente de confirmar con la operación
 - Niveles (Crítico, Básico, En alerta, Óptimo): los del CUSI aplicados al promedio mensual del asesor (cortes 70, 80 y 92 sobre 100).
-- Horario hábil para ECN-1 (3 horas hábiles): la herramienta usa 08:00 a 18:00 de lunes a viernes sin festivos de Colombia; confirmarlo con la operación.
+- Horario hábil para ECN-1 (3 horas hábiles): 08:00 a 18:00 de lunes a viernes, sin festivos de Colombia (confirmado por el usuario el 2026-10-29).
