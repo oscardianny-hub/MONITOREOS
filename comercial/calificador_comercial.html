@@ -200,6 +200,15 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
       </label>
       <div class="row"><button id="saveLista" type="button">Guardar lista</button><span class="msg" id="listaMsg" aria-live="polite"></span></div>
     </details>
+    <details id="procBox">
+      <summary style="cursor:pointer;font-weight:600">Proceso de WhatsApp de sedes comerciales (parámetro)</summary>
+      <label class="f" style="margin-top:10px;flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="procOn" checked style="width:auto"> Usar este proceso como referencia al calificar WhatsApp</label>
+      <label class="f" for="procTxt">Texto del proceso
+        <span class="h">Es contexto para Claude: no crea criterios ni cambia pesos. Puedes editarlo; se guarda solo en este navegador.</span>
+        <textarea id="procTxt" style="min-height:220px"></textarea>
+      </label>
+      <div class="row"><button id="procReset" type="button">Restaurar el proceso original</button><span class="msg" id="procMsg" aria-live="polite"></span></div>
+    </details>
     <div class="f" id="correoBox" hidden>
       <span style="font-weight:500">Correo a calificar</span>
       <span class="h">Pega el hilo completo (sirve de contexto); solo se califica el correo final que salió desde esta dirección. Las fechas son opcionales y Claude las usa como dato.</span>
@@ -553,6 +562,9 @@ function rulesText(){return C.map(c=>`- ${c.code}: ${RULES[c.code]||c.desc}`).jo
 
 /* ---------- Prompt ---------- */
 function asesorTxt(){return ($("asesorN").value||"").trim();}
+const PROC_WA="PROCESO WHATSAPP · SEDES COMERCIALES (actividad · responsable)\n1. El usuario o asociado ingresa al canal de WhatsApp.\n2. Se asigna la conversación a un asesor comercial en el aplicativo (CRM asignado, Coordinador o Analista comercial).\n3. ¿Ingresa dentro del horario de atención? Sí: actividad 4. No: actividad 13.\n4. El asesor atiende con base en el hilo sostenido con el Asistente Virtual BLUE, usando los guiones según el tipo de requerimiento.\n5. ¿El usuario responde? Sí: actividad 6. No: actividad 14.\n6. ¿BLUE hizo las preguntas de validación de identidad? Sí: actividad 7. No: actividad 8.\n7. El asesor valida en CYGNUS que los datos suministrados estén correctos y, si no, los ajusta. Sigue a la 9.\n8. El asesor hace las preguntas de validación de titularidad para confirmar identidad, u otras según el protocolo.\n9. ¿El usuario está creado como contacto en el CRM? Sí: actividad 11. No: actividad 10.\n10. El asesor crea el contacto en el CRM.\n11. El asesor asocia la cuenta del usuario en el CRM según la PV-IN-02.\n12. El asesor da la asesoría comercial según AS-026, PV-PR-01, PV-PR-02, PV-PR-03, PV-PR-08, las fichas PV-DG-03, PV-DG-04, PV-DG-05 y PV-DG-09, PV-LM-04 (productos autorizados por sede) y AS-PR-02 (trámites con el asociado); recibos de pago: CT-IN-04 y CT-IN-08. Sigue a la 16. Si la conversación está bloqueada por espera superior a 24 horas: actividad 17; si no: actividad 4.\n13. Fuera de horario: el asesor valida con el guion si el usuario sigue en línea.\n14. ¿Se recibe respuesta? Sí: actividad 6.\n15. El asesor pregunta por plantilla en qué puede servir y espera respuesta 5 minutos. Si responde: 15.1. Si no: actividad 17.\n15.1 Solicita por fragmento tiempo en línea para validaciones según el requerimiento. Si es posventa (recibos de pago): ver 12.\n15.2 Igual, si es un acuerdo de aportes: ver 12.\n15.3 Solicita por plantilla tiempo en línea; si es crédito nuevo, hace el perfilamiento de las líneas de la actividad 12.\n15.4 Identificado el perfilamiento, solicita los documentos de cada línea.\n15.5 Si es una renovación, da el fragmento y genera 15.7 y 15.8.\n15.6 Envía la encuesta de satisfacción y cierra la conversación.\n15.7 Crea en HubSpot una tarea para validar la radicación.\n15.8 ¿Hubo radicación? Sí: revisar y subsanar pendientes. No: hacer 15.6 y abrir conversación por WhatsApp.\n15.9 ¿Hubo radicación? Sí: revisar y subsanar pendientes. No: hacer 15.6 y llamar.\n16. El asesor cierra la conversación.\n17 a 22. Seguimiento mensual, monitoreo aleatorio y retroalimentación sobre la AS-026; plan de acción si hay falencias; monitoreo en tiempo real del canal y ajuste de horarios o funciones del equipo (Asesor y Analista comercial).";
+function procPrompt(){if(canal!=="whatsapp"||!$("procOn").checked)return "";const t=($("procTxt").value||"").trim();if(!t)return "";
+  return "\nPROCESO DE REFERENCIA (WhatsApp, sedes comerciales). Úsalo solo como contexto de lo que el asesor debe hacer; califica únicamente los criterios de la lista y no inventes criterios del proceso. Si una conducta del proceso no se ve en la conversación o depende de otro sistema, usa «NE» salvo que la regla del criterio indique otra cosa:\n<<<\n"+t+"\n>>>\n";}
 /* Fechas y horas hábiles (festivos de Colombia, Ley Emiliani) */
 function festivosCO(y){const k=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(),out=new Set();
   const lunes=d=>{while(d.getDay()!==1)d.setDate(d.getDate()+1);return d;};
@@ -618,7 +630,7 @@ ${criteriaText()}
 FORMATO DE SALIDA: responde SOLO con un objeto JSON, sin texto adicional:
 {"canal":"${canal}|otro canal|indeterminado","asesor":"nombre del asesor si aparece, o vacío","criterios":[{"codigo":"HD-1","calificacion":"Si|No|NA|NE","razon":"...","conducta":"conducta evaluada, una frase","evidencia":"...","mejora":"..."}],"observacion":"...","fortalezas":["..."],"oportunidades":["..."],"plan_accion":[{"accion":"...","plazo":"..."}]}
 Incluye los ${C.length} criterios en orden.
-${asesorTxt()?"\nASESOR INDICADO POR EL ANALISTA: "+asesorTxt()+"\n":""}${datosTxt()}${hubOn()?"\nREGISTRO EN HUBSPOT APORTADO POR EL ANALISTA:\n<<<\n"+$("hub").value.trim()+"\n>>>\n":""}
+${asesorTxt()?"\nASESOR INDICADO POR EL ANALISTA: "+asesorTxt()+"\n":""}${datosTxt()}${procPrompt()}${hubOn()?"\nREGISTRO EN HUBSPOT APORTADO POR EL ANALISTA:\n<<<\n"+$("hub").value.trim()+"\n>>>\n":""}
 INTERACCIÓN (${CANALES[canal].nombre.toUpperCase()}):
 <<<
 ${chat}
@@ -819,7 +831,7 @@ function setChannel(v){
   canal=v;gi=parseInt($("gest").value,10)||0;setup();extra=null;$("analysis").hidden=true;
   $("chatLabel").textContent=CANALES[v].label;$("chatHelp").textContent=CANALES[v].help;
   $("pendingNote").hidden=true;
-  $("correoBox").hidden=v!=="correo";$("ecnBox").hidden=!C.some(c=>c.code==="ECN-1");showEcn();
+  $("correoBox").hidden=v!=="correo";$("procBox").hidden=v!=="whatsapp";$("ecnBox").hidden=!C.some(c=>c.code==="ECN-1");showEcn();
   buildRows();recalc();setStatus("");
 }
 setChannel("whatsapp");
@@ -974,5 +986,11 @@ $("saveLista").addEventListener("click",()=>{const n=pintaAsesores();let ok=true
 try{const h=JSON.parse(localStorage.getItem("com-horario")||"null");if(h){$("hIni").value=h[0];$("hFin").value=h[1];}}catch(e){}
 ["hIni","hFin"].forEach(id=>$(id).addEventListener("change",()=>{try{localStorage.setItem("com-horario",JSON.stringify([$("hIni").value,$("hFin").value]));}catch(e){}}));
 showEcn();
+
+/* ---------- Proceso de WhatsApp (parámetro) ---------- */
+try{$("procTxt").value=localStorage.getItem("com-proceso-wa")||PROC_WA;$("procOn").checked=localStorage.getItem("com-proceso-wa-on")!=="0";}catch(e){$("procTxt").value=PROC_WA;}
+$("procTxt").addEventListener("input",()=>{try{localStorage.setItem("com-proceso-wa",$("procTxt").value);}catch(e){}});
+$("procOn").addEventListener("change",()=>{try{localStorage.setItem("com-proceso-wa-on",$("procOn").checked?"1":"0");}catch(e){}});
+$("procReset").addEventListener("click",()=>{$("procTxt").value=PROC_WA;try{localStorage.removeItem("com-proceso-wa");}catch(e){}$("procMsg").textContent="Proceso original restaurado.";});
 
 </script>
