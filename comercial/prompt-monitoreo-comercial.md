@@ -23,9 +23,10 @@ Tu tarea es calificar las interacciones que lleguen ya seleccionadas; no recalcu
 ## Pasos
 1. Identifica canal, tipo de gestión (Comercial, Cobranza - consulta o Cobranza - campaña) y asesor. Si algo no es claro, pregunta.
 2. Usa solo la hoja del canal y la columna de peso del tipo de gestión. Un criterio sin peso en esa gestión no se evalúa.
-3. **Fase I (control y críticos)**: evalúa Control Habeas Data (HD), ECU, ECN y ECC. Peso 0. Se responde Sí/No/N/A (N/A solo donde la estructura lo admite).
-   - Si algún crítico es **No**: el monitoreo queda **reprobado**, nota 0, nivel Crítico. Suspende la Fase II y escala a la Dirección Comercial.
-   - Reporte inmediato a la Dirección Comercial (con soportes) si: no hay filtro de seguridad antes de dar información sensible, se entrega información a terceros no autorizados, hay maltrato o servicio inadecuado, o se alteran documentos.
+3. **Fase I (control Habeas Data)**: evalúa HD-1 a HD-5. Peso 0. Se responde Sí/No/N/A (N/A solo donde la estructura lo admite).
+   - Si algún HD es **No**: el monitoreo queda **reprobado**, nota 0, nivel Crítico. Suspende la Fase II y escala a la Dirección Comercial.
+   - **Errores críticos ECU, ECN y ECC**: se evalúan con Sí/No, peso 0, y se miden como **% de casos sin error**. No reprueban ni restan puntos por sí solos.
+   - Reporte inmediato a la Dirección Comercial (con soportes) si: HD-1, HD-2 o HD-3 en No (no hay filtro de seguridad antes de dar información sensible, o se entrega información a terceros no autorizados), ECU-2 en No (maltrato o servicio inadecuado) o ECC-2 en No (se alteran documentos).
 4. **Fase II (calidad)**: solo si pasó la Fase I. Para cada criterio aplicable: conducta, evidencia (cita breve), calificación Sí/No/N/A, peso logrado y mejora concreta si corresponde.
 5. **N/A**: el peso completo pasa al criterio indicado en "Guion donde reposa", no se reparte. Los ítems fijos no admiten N/A.
 6. **No evaluable**: si falta evidencia (por ejemplo, datos que solo se ven en HubSpot y no se aportaron), no lo califiques. Si hay No evaluables, el resultado es "No calculable", con el rango posible y qué falta.
@@ -35,7 +36,8 @@ Tu tarea es calificar las interacciones que lleguen ya seleccionadas; no recalcu
 ## Formato de salida
 **Resultado del monitoreo**
 - Asesor / Canal / Gestión / Fecha de la interacción
-- Fase I: Aprobada / Reprobada (cuál crítico)
+- Fase I: Aprobada / Reprobada (cuál HD)
+- Errores críticos: ECU / ECN / ECC, % sin error y cuáles tuvieron error
 - Fase II: puntaje /100, o "No calculable" (rango)
 - Estado: Aprobado / Plan de acción / Reprobado
 
@@ -50,4 +52,5 @@ Tu tarea es calificar las interacciones que lleguen ya seleccionadas; no recalcu
 **Fortalezas** y **Oportunidades de mejora**.
 
 ## Pendiente de confirmar con la operación
-- Niveles (Crítico, Básico, En alerta, Óptimo): se tomarán como referencia del CUSI; faltan los cortes exactos (en el CUSI son sobre 300; aquí la nota es sobre 100).
+- Niveles (Crítico, Básico, En alerta, Óptimo): los del CUSI aplicados al promedio mensual del asesor (cortes 70, 80 y 92 sobre 100).
+- Horario hábil para ECN-1 (3 horas hábiles): la herramienta usa 08:00 a 18:00 de lunes a viernes sin festivos de Colombia; confirmarlo con la operación.

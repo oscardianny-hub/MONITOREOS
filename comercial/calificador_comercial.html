@@ -153,8 +153,10 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
         </ol>
       </div>
       <div>
+        <h3>Sin conexión con Claude</h3>
+        <p class="about">Si el botón «Calificar con Claude» no responde, usa «Hazlo desde el chat de Claude» o califica a mano en la tabla. También sirve en la copia descargada.</p>
         <h3>Límites</h3>
-        <p class="about">Los ítems que dependen de lo registrado en HubSpot (SLA, etapas, actividades, notas, tareas) solo los califica Claude si pegas ese registro en el cuadro opcional; si no, los selecciona el analista. Las reglas de horarios de cobranza y los tiempos de respuesta son de referencia: confírmalos con la operación.</p>
+        <p class="about">Los ítems que dependen de lo registrado en HubSpot (SLA, etapas, actividades, notas, tareas) solo los califica Claude si pegas ese registro en el cuadro opcional; si no, los selecciona el analista. En llamada, el manejo de la espera (LL-2) lo propone Claude con la transcripción y el analista lo confirma al oír el audio. ECN-1 se califica solo cuando escribes la asignación y el primer contacto. Las reglas de horarios de cobranza, el horario hábil y los tiempos de respuesta son de referencia: confírmalos con la operación.</p>
       </div>
     </div>
   </details>
@@ -164,7 +166,8 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
     <div class="cols">
       <div><h3>WhatsApp</h3><ol><li>Abre la conversación en HubSpot y sube hasta el primer mensaje.</li><li>Copia del saludo al cierre.</li><li>Pégala con el canal WhatsApp.</li></ol></div>
       <div><h3>Correo</h3><ol><li>Pega el hilo completo, con fechas y horas.</li><li>Indica el correo de salida del asesor si el hilo tiene varias respuestas.</li></ol></div>
-      <div><h3>Llamada y presencial</h3><ol><li>Llamada: pega la transcripción, con horas si las tiene.</li><li>Presencial: escribe las notas de la atención y qué se hizo en la sede.</li></ol></div>
+      <div><h3>Llamada y presencial</h3><ol><li>Llamada: si tu central tiene transcripción, cópiala del detalle de la llamada; si no, descarga la grabación y transcríbela en Word en la web con «Transcribir».</li><li>Pégala con el canal Llamada, con horas si las tiene.</li><li>Presencial: escribe las notas de la atención y qué se hizo en la sede.</li></ol></div>
+      <div><h3>Archivo (texto, Word o PDF)</h3><ol><li>Pulsa «Cargar desde archivo» y elige el .txt, .docx o .pdf de la conversación.</li><li>La página saca solo el texto en tu navegador: gasta lo mismo que pegarlo.</li><li>Si el PDF es escaneado (imagen) no tiene texto: ábrelo con Word y guárdalo como .docx.</li><li>Revisa el texto cargado y borra encabezados y pies de página.</li></ol></div>
       <div><h3>Para gastar menos</h3><ul><li>Solo texto, sin capturas.</li><li>Borra lo que no se califica: bot, líneas de sistema, encuestas.</li><li>Califica una vez y corrige en la tabla.</li></ul></div>
     </div>
   </details>
@@ -182,8 +185,40 @@ select.gest{max-width:260px;font-weight:500;padding:8px 10px;font-size:14px}
         <select id="gest" class="gest"><option value="0">Comercial</option><option value="1">Cobranza - consulta</option><option value="2">Cobranza - campaña</option></select>
       </label>
       <label class="f" for="asesorN">Asesor (opcional)
-        <input type="text" id="asesorN" placeholder="Nombre del asesor">
+        <input type="text" id="asesorN" list="asesoresDL" placeholder="Elige de la lista o escribe" autocomplete="off">
+        <datalist id="asesoresDL"></datalist>
       </label>
+      <label class="f" for="fGest">Fecha y hora de la gestión (opcional)
+        <input type="datetime-local" id="fGest">
+      </label>
+    </div>
+    <details id="listaBox">
+      <summary style="cursor:pointer;font-weight:600">Lista de asesores</summary>
+      <label class="f" for="listaAs" style="margin-top:10px">Un asesor por línea
+        <span class="h">Se guarda solo en este navegador y alimenta la lista de arriba. No se envía a ningún lado.</span>
+        <textarea id="listaAs" style="min-height:90px" placeholder="Nombre Apellido"></textarea>
+      </label>
+      <div class="row"><button id="saveLista" type="button">Guardar lista</button><span class="msg" id="listaMsg" aria-live="polite"></span></div>
+    </details>
+    <div class="f" id="correoBox" hidden>
+      <span style="font-weight:500">Correo a calificar</span>
+      <span class="h">Pega el hilo completo (sirve de contexto); solo se califica el correo final que salió desde esta dirección. Las fechas son opcionales y Claude las usa como dato.</span>
+      <div class="tipsel">
+        <input type="text" id="asesorMail" placeholder="Correo de salida (ej.: asesor@…)" aria-label="Correo desde donde salió la respuesta" style="max-width:320px">
+        <label class="f" for="fRec" style="font-size:13px">Correo del usuario (recibido)<input type="datetime-local" id="fRec"></label>
+        <label class="f" for="fRes" style="font-size:13px">Respuesta del asesor (correo calificado)<input type="datetime-local" id="fRes"></label>
+      </div>
+    </div>
+    <div class="f" id="ecnBox" hidden>
+      <span style="font-weight:500">Primer contacto del lead (ECN-1)</span>
+      <span class="h">Si escribes las dos fechas, la página califica sola ECN-1: el primer contacto debe darse dentro de 3 horas hábiles desde la asignación (sin sábados, domingos ni festivos de Colombia, y solo dentro del horario hábil de abajo).</span>
+      <div class="tipsel">
+        <label class="f" for="fAsig" style="font-size:13px">Asignación del lead<input type="datetime-local" id="fAsig"></label>
+        <label class="f" for="fPrim" style="font-size:13px">Primer contacto<input type="datetime-local" id="fPrim"></label>
+        <label class="f" for="hIni" style="font-size:13px">Horario hábil desde<input type="time" id="hIni" value="08:00"></label>
+        <label class="f" for="hFin" style="font-size:13px">hasta<input type="time" id="hFin" value="18:00"></label>
+      </div>
+      <span class="msg" id="ecnMsg" aria-live="polite"></span>
     </div>
     <div id="pendingNote" class="pending" hidden></div>
     <label class="f" for="chat"><span id="chatLabel">Transcripción de la conversación</span>
@@ -518,6 +553,40 @@ function rulesText(){return C.map(c=>`- ${c.code}: ${RULES[c.code]||c.desc}`).jo
 
 /* ---------- Prompt ---------- */
 function asesorTxt(){return ($("asesorN").value||"").trim();}
+/* Fechas y horas hábiles (festivos de Colombia, Ley Emiliani) */
+function festivosCO(y){const k=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(),out=new Set();
+  const lunes=d=>{while(d.getDay()!==1)d.setDate(d.getDate()+1);return d;};
+  [[0,1],[4,1],[6,20],[7,7],[11,8],[11,25]].forEach(([m,d])=>out.add(k(new Date(y,m,d))));
+  [[0,6],[2,19],[5,29],[7,15],[9,12],[10,1],[10,11]].forEach(([m,d])=>out.add(k(lunes(new Date(y,m,d)))));
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),kk=c%4,l=(32+2*e+2*i-h-kk)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=(h+l-7*m+114)%31+1;
+  [-3,-2,43,64,71].forEach(x=>out.add(k(new Date(y,mes-1,dia+x))));return out;}
+function habil(d){if(d.getDay()===0||d.getDay()===6)return false;return !festivosCO(d.getFullYear()).has(d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate());}
+const fecha=id=>{const v=($(id)&&$(id).value)||"";const m=v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);return m?new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]):null;};
+const fTxt=d=>d.toLocaleString("es-CO",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+const hmin=id=>{const m=(($(id)&&$(id).value)||"").match(/^(\d{2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null;};
+function sumaHabiles(t,horas,ini,fin){
+  const d=new Date(t),mins=x=>x.getHours()*60+x.getMinutes();let rest=horas*60;
+  const sig=()=>{do{d.setDate(d.getDate()+1);}while(!habil(d));d.setHours(0,ini,0,0);};
+  if(!habil(d))sig();else if(mins(d)<ini)d.setHours(0,ini,0,0);else if(mins(d)>=fin)sig();
+  for(;;){const disp=fin-mins(d);if(rest<=disp){d.setMinutes(d.getMinutes()+rest);return d;}rest-=disp;sig();}
+}
+function ecnPlazo(){const a=fecha("fAsig"),p=fecha("fPrim"),ini=hmin("hIni"),fin=hmin("hFin");
+  if(!a||!p)return null;if(ini==null||fin==null||fin<=ini)return{err:"Revisa el horario hábil: la hora final debe ser posterior a la inicial."};
+  if(p<a)return{err:"El primer contacto no puede ser anterior a la asignación."};
+  const l=sumaHabiles(a,3,ini,fin);return{a,p,l,ok:p<=l};}
+function showEcn(){const el=$("ecnMsg");if(!el)return;const p=ecnPlazo();el.className="msg";
+  if(!p){el.textContent="";return;}if(p.err){el.className="msg err";el.textContent=p.err;return;}
+  el.className="msg"+(p.ok?"":" warn");el.textContent="Plazo hasta "+fTxt(p.l)+": "+(p.ok?"contactó a tiempo (ECN-1 = Sí).":"contactó fuera de plazo (ECN-1 = No).");}
+function applyEcn(fixOrig){const i=C.findIndex(c=>c.code==="ECN-1");if(i<0)return;const p=ecnPlazo();if(!p||p.err)return;const st=state[i];
+  st.cal=p.ok?"Si":"No";st.razon="Fechas registradas por el analista: el primer contacto debe darse dentro de 3 horas hábiles (PV-PR-09).";
+  st.evidencia="Asignado "+fTxt(p.a)+"; primer contacto "+fTxt(p.p)+"; plazo hasta "+fTxt(p.l);
+  st.conducta=p.ok?"Contacta al lead dentro de las 3 horas hábiles.":"Contacta al lead después de las 3 horas hábiles.";
+  st.mejora=p.ok?"":"Hacer el primer contacto dentro de las 3 horas hábiles siguientes a la asignación.";
+  if(fixOrig||!st.orig)st.orig=st.cal;}
+function datosTxt(){const g=fecha("fGest"),r=fecha("fRec"),s=fecha("fRes"),a=fecha("fAsig"),p=fecha("fPrim");
+  const l=[g?"fecha y hora de la gestión: "+fTxt(g):"",canal==="correo"&&r?"correo del usuario recibido el "+fTxt(r):"",canal==="correo"&&s?"respuesta del asesor enviada el "+fTxt(s):"",
+    canal==="correo"&&($("asesorMail").value||"").trim()?"correo calificado: el que salió desde "+$("asesorMail").value.trim():"",a?"lead asignado el "+fTxt(a):"",p?"primer contacto el "+fTxt(p):""].filter(Boolean);
+  return l.length?"\nDATOS REGISTRADOS POR EL ANALISTA (úsalos como dato cierto; ECN-1, si hay fechas de asignación y primer contacto, lo califica la herramienta: devuélvelo «NE»):\n- "+l.join("\n- ")+"\n":"";}
 function buildPrompt(chat){
 return `Eres analista de calidad comercial (Preventa y Venta) de una cooperativa colombiana. Califica la interacción con el formato de monitoreo comercial PV-FR-62 (instructivo PV-IN-04), canal ${CANALES[canal].nombre.toUpperCase()}, gestión «${GEST[gi]}». Responde en español, con tono profesional y neutral.
 
@@ -549,7 +618,7 @@ ${criteriaText()}
 FORMATO DE SALIDA: responde SOLO con un objeto JSON, sin texto adicional:
 {"canal":"${canal}|otro canal|indeterminado","asesor":"nombre del asesor si aparece, o vacío","criterios":[{"codigo":"HD-1","calificacion":"Si|No|NA|NE","razon":"...","conducta":"conducta evaluada, una frase","evidencia":"...","mejora":"..."}],"observacion":"...","fortalezas":["..."],"oportunidades":["..."],"plan_accion":[{"accion":"...","plazo":"..."}]}
 Incluye los ${C.length} criterios en orden.
-${asesorTxt()?"\nASESOR INDICADO POR EL ANALISTA: "+asesorTxt()+"\n":""}${hubOn()?"\nREGISTRO EN HUBSPOT APORTADO POR EL ANALISTA:\n<<<\n"+$("hub").value.trim()+"\n>>>\n":""}
+${asesorTxt()?"\nASESOR INDICADO POR EL ANALISTA: "+asesorTxt()+"\n":""}${datosTxt()}${hubOn()?"\nREGISTRO EN HUBSPOT APORTADO POR EL ANALISTA:\n<<<\n"+$("hub").value.trim()+"\n>>>\n":""}
 INTERACCIÓN (${CANALES[canal].nombre.toUpperCase()}):
 <<<
 ${chat}
@@ -593,6 +662,7 @@ function apply(res){
   state=C.map(c=>{const it=list.find(x=>String(x&&x.codigo).toUpperCase()===c.code)||{};return{cal:norm(it.calificacion),razon:String(it.razon||""),conducta:String(it.conducta||""),evidencia:String(it.evidencia||""),mejora:String(it.mejora||""),orig:"",obsA:""};});
   // Los ítems de HubSpot los selecciona el analista si no se aportó el registro.
   if(!hubOn())C.forEach((c,i)=>{if(c.hub){const st=state[i];st.cal="NE";st.razon="Depende de HubSpot y no se aportó el registro.";st.evidencia="Lo selecciona el analista en HubSpot.";st.mejora="";st.conducta="";}});
+  applyEcn(true);
   state.forEach(st=>{st.orig=st.cal;});
   extra={asesor:String(res.asesor||asesorTxt()||""),observacion:String(res.observacion||""),fortalezas:(res.fortalezas||[]).map(String),oportunidades:(res.oportunidades||[]).map(String),plan:planTxt(res.plan_accion)};
   renderExtra();
@@ -749,6 +819,7 @@ function setChannel(v){
   canal=v;gi=parseInt($("gest").value,10)||0;setup();extra=null;$("analysis").hidden=true;
   $("chatLabel").textContent=CANALES[v].label;$("chatHelp").textContent=CANALES[v].help;
   $("pendingNote").hidden=true;
+  $("correoBox").hidden=v!=="correo";$("ecnBox").hidden=!C.some(c=>c.code==="ECN-1");showEcn();
   buildRows();recalc();setStatus("");
 }
 setChannel("whatsapp");
@@ -765,7 +836,7 @@ $("chatFile").addEventListener("change",async()=>{const f=$("chatFile").files[0]
     $("chat").value=txt;m.textContent="Listo: se cargaron "+txt.length.toLocaleString("es-CO")+" caracteres de «"+f.name+"». Revisa que esté la interacción completa.";
     if(txt.length>60000){m.className="msg warn";m.textContent+=" Es muy largo: quita lo que no se evalúa para gastar menos.";}}
   catch(e){m.className="msg err";m.textContent="No se pudo leer el archivo ("+(e&&e.message||e)+"). Prueba con otro formato o pega el texto.";}});
-$("clear").addEventListener("click",()=>{$("chat").value="";$("hub").value="";$("asesorN").value="";$("fileMsg").textContent="";state=C.map(blank);extra=null;$("analysis").hidden=true;recalc();setStatus("");});
+$("clear").addEventListener("click",()=>{$("chat").value="";$("hub").value="";$("asesorN").value="";["fGest","fRec","fRes","fAsig","fPrim"].forEach(id=>$(id).value="");showEcn();$("fileMsg").textContent="";state=C.map(blank);extra=null;$("analysis").hidden=true;recalc();setStatus("");});
 $("copyTxt").addEventListener("click",()=>copy(resultText()));
 $("copyTsv").addEventListener("click",()=>copy(resultTsv()));
 $("copyAna").addEventListener("click",()=>copyTo(analysisText(),$("anaMsg")));
@@ -819,7 +890,7 @@ function addCarga(){
   const r=compute();
   if(C.some((c,i)=>state[i].cal===""||state[i].cal==="NE")||r.revisar.length){m.textContent="Quedan criterios sin calificar o en revisión del analista: complétalos antes de agregar.";return;}
   const cal={};C.forEach((c,i)=>{cal[c.code]=XL[state[i].cal]||"";});
-  carga.push({asesor,canal,gi,id:$("cId").value.trim(),cal});saveCarga();renderCarga();
+  carga.push({asesor,canal,gi,id:$("cId").value.trim()||(fecha("fGest")?fTxt(fecha("fGest")):""),cal});saveCarga();renderCarga();
   m.textContent="Agregada. "+$("cargaMsg").textContent;
 }
 /* xlsx mínimo, sin librerías */
@@ -890,5 +961,18 @@ $("clearCarga").addEventListener("click",()=>{const b=$("clearCarga");if(!carga.
   if(b.dataset.ask!=="1"){b.dataset.ask="1";b.textContent="Confirmar: vaciar todo";setTimeout(()=>{b.dataset.ask="";b.textContent="Vaciar la carga";},4000);return;}
   b.dataset.ask="";b.textContent="Vaciar la carga";carga=[];saveCarga();renderCarga();});
 renderCarga();
+
+/* ---------- Lista de asesores y fechas ---------- */
+function pintaAsesores(){const lst=($("listaAs").value||"").split("\n").map(x=>x.trim()).filter(Boolean);
+  const dl=$("asesoresDL");dl.textContent="";lst.forEach(n=>{const o=document.createElement("option");o.value=n;dl.append(o);});return lst.length;}
+try{$("listaAs").value=localStorage.getItem("com-asesores")||"";}catch(e){}
+pintaAsesores();
+$("saveLista").addEventListener("click",()=>{const n=pintaAsesores();let ok=true;try{localStorage.setItem("com-asesores",$("listaAs").value);}catch(e){ok=false;}
+  $("listaMsg").textContent=n?(ok?"Lista guardada: "+n+" asesor"+(n===1?"":"es")+".":"Lista cargada, pero este navegador no permite guardarla."):"La lista está vacía.";});
+["fAsig","fPrim","hIni","hFin"].forEach(id=>$(id).addEventListener("input",()=>{showEcn();
+  if(state.some(s=>s.cal)){applyEcn(true);recalc();}}));
+try{const h=JSON.parse(localStorage.getItem("com-horario")||"null");if(h){$("hIni").value=h[0];$("hFin").value=h[1];}}catch(e){}
+["hIni","hFin"].forEach(id=>$(id).addEventListener("change",()=>{try{localStorage.setItem("com-horario",JSON.stringify([$("hIni").value,$("hFin").value]));}catch(e){}}));
+showEcn();
 
 </script>
